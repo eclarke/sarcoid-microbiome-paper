@@ -11,5 +11,6 @@ r:
  - release
 
 script:
+  - R CMD check
   - git clone http://microb98.med.upenn.edu/bitbucket/scm/sarc/data_files.git ~/data_files
   - Rscript -e 'knitr::knit(system.file("generate_figures.Rmd", package="SarcoidMicrobiome"))'
