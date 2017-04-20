@@ -1,0 +1,18 @@
+---
+title: "Sarcoid Microbiome Figures and Data"
+author: "Erik Clarke"
+date: "4/20/2017"
+output: html_document
+---
+
+```{r setup, error=FALSE}
+knitr::opts_chunk$set(error=FALSE)
+library(SarcoidMicrobiome)
+SarcoidMicrobiome::opts$set("data_fp", "~/data_files")
+```
+
+```{r load-data}
+a.16s <- LoadData("A", "16S")
+```
+
+
