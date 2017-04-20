@@ -7,6 +7,6 @@ cache: packages
 r:
  - release
 
-after_install:
+script:
   - git clone https://microb98.med.upenn.edu/bitbucket/scm/sarc/data_files.git ~/data_files
   - Rscript -e 'knitr::knit(system.file("generate_figures.Rmd", package="SarcoidMicrobiome"))'
