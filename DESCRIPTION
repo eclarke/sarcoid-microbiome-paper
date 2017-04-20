@@ -1,11 +1,11 @@
 Package: SarcoidMicrobiome
 Type: Package
-Title: What the Package Does (Title Case)
-Version: 0.1.0
-Author: Who wrote it
-Maintainer: Who to complain to <yourfault@somewhere.net>
-Description: More about what it does (maybe more than one line)
-License: What license is it under?
+Title: Figures for the Clarke et al sarcoid microbiome paper
+Version: 0.0.1
+Author: Erik Clarke
+Maintainer: Erik Clarke <ecl@mail.med.upenn.edu>
+Description: Package containing all the code for figure and table generation
+License: GPL 3
 LazyData: TRUE
 RoxygenNote: 5.0.1
 biocViews:
