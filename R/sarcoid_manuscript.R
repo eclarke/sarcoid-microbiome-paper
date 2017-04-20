@@ -1,5 +1,6 @@
 params <- new.env()
 
+#' Get and set global options.
 #' @export
 opts <- list(
   get = function(key) params$key,

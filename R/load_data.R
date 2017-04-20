@@ -1,7 +1,8 @@
 #' Load datasets.
 #' @param set the sample set in question (of A-C, DE)
 #' @param data the data type (of 16S, ITS, virome, or WGS)
-#' @import dplyr tidyr eclectic
+#' @param data_fp path to data files
+#' @import dplyr eclectic
 #' @export
 LoadData <- function(
   set=c("A", "B", "C", "DE"),
@@ -56,7 +57,7 @@ LoadData <- function(
     tree <- ape::root(tree, sample(tree$tip.label, 1), resolve.root=TRUE)
 
     md2 <- read.table(tax_file, sep="\t")
-    md2 <- md2 %>% separate(
+    md2 <- md2 %>% tidyr::separate(
       V2, into=c("Domain", qiimer::taxonomic_ranks),
       sep=";", extra="drop", fill="right")
     md2 <- select(md2, -Domain)

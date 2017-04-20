@@ -11,6 +11,8 @@ LoadData(set = c("A", "B", "C", "DE"), data = c("16S", "ITS", "virome",
 \item{set}{the sample set in question (of A-C, DE)}
 
 \item{data}{the data type (of 16S, ITS, virome, or WGS)}
+
+\item{data_fp}{path to data files}
 }
 \description{
 Load datasets.

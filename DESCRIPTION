@@ -14,5 +14,9 @@ Remotes:
   kylebittinger/polyafit@2fc2346
 Depends:
   dplyr,
-  tidyr
+  tidyr,
+  ape,
+  plyr,
+  qiimer,
+  readxl
 Imports: eclectic, dplyr, tidyr
