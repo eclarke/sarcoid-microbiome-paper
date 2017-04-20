@@ -8,7 +8,6 @@ Description: Package containing all the code for figure and table generation
 License: GPL 3
 LazyData: TRUE
 RoxygenNote: 5.0.1
-biocViews:
 Remotes:
   eclarke/eclectic@sarcoid_paper,
   eclarke/eclpalettes@sarcoid_paper,
