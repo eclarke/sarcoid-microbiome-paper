@@ -13,10 +13,11 @@ Remotes:
   eclarke/eclpalettes@sarcoid_paper,
   kylebittinger/polyafit@2fc2346
 Depends:
-  dplyr,
-  tidyr,
-  ape,
   plyr,
+  ape,
   qiimer,
   readxl
-Imports: eclectic, dplyr, tidyr
+Imports:
+  eclectic,
+  dplyr,
+  tidyr

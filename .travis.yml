@@ -6,6 +6,7 @@ cache: packages
 
 r_packages:
   - knitr
+  - rmarkdown
   - devtools
   - roxygen2
 
@@ -17,4 +18,4 @@ before_install:
 
 script:
   - Rscript -e 'devtools::check()'
-  - Rscript -e 'knitr::knit(system.file("generate_figures.Rmd", package="SarcoidMicrobiome"))'
+  - Rscript -e 'rmarkdown::render(system.file("generate_figures.Rmd", package="SarcoidMicrobiome"), params=list(data_fp="~/data_files"))'

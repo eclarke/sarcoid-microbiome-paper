@@ -3,16 +3,27 @@ title: "Sarcoid Microbiome Figures and Data"
 author: "Erik Clarke"
 date: "4/20/2017"
 output: html_document
+params: 
+  data_fp: "~/data/000_Sarcoidosis/099_Manuscript/data_files"
 ---
 
 ```{r setup, error=FALSE}
 knitr::opts_chunk$set(error=FALSE)
 library(SarcoidMicrobiome)
-SarcoidMicrobiome::opts$set("data_fp", "~/data_files")
+SarcoidMicrobiome::opts$set("data_fp", params$data_fp)
 ```
 
 ```{r load-data}
 a.16s <- LoadData("A", "16S")
+# a.its <- LoadData("A", "ITS")
+# b.16s <- LoadData("B", "16S")
+# b.its <- LoadData("B", "ITS")
+# c.16s <- LoadData("C", "16S")
+# c.its <- LoadData("C", "ITS")
+# c.vir <- LoadData("C", "virome")
+# de.16s <- LoadData("DE", "16S")
+# de.its <- LoadData("DE", "ITS")
+# de.wgs <- LoadData("DE", "WGS")
 ```
 
 
