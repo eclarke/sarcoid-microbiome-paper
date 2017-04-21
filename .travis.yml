@@ -5,12 +5,15 @@ sudo: false
 cache: packages
 
 r_packages:
- - knitr
+  - knitr
+  - devtools
 
 r:
- - release
+  - release
+
+before_install:
+  - git clone http://microb98.med.upenn.edu/bitbucket/scm/sarc/data_files.git ~/data_files
 
 script:
-  - R CMD check
-  - git clone http://microb98.med.upenn.edu/bitbucket/scm/sarc/data_files.git ~/data_files
+  - Rscript -e 'devtools::check()'
   - Rscript -e 'knitr::knit(system.file("generate_figures.Rmd", package="SarcoidMicrobiome"))'
