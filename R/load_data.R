@@ -184,7 +184,7 @@ LoadData <- function(
     mutate(
       Building = factor(ifelse(!is.na(Building), paste("Building", Building), NA))) %>%
     mutate(
-      OriginatingSampleID =  make.names(tolower(SampleID))) %>%
+      OriginatingSampleID = make.names(tolower(SampleID))) %>%
     mutate(
       OriginatingSampleID = sub("4819", "4810", OriginatingSampleID)) %>%
     select(OriginatingSampleID, Building, Date) %>% distinct(.keep_all=TRUE) %>%
@@ -199,20 +199,25 @@ LoadData <- function(
   md <- as.data.frame(o$metadata)
   md$otu <- rownames(md)
   colnames(md)[1] <- "taxonomy"
-  md <- md %>% separate(taxonomy, into=qiimer::taxonomic_ranks, sep="; ",
-                        extra = "drop", fill="right") %>%
+  md <- md %>% tidyr::separate(
+    taxonomy,
+    into=qiimer::taxonomic_ranks,
+    sep="; ",
+    extra = "drop", fill="right") %>%
     mutate_each(funs(sub("[kpcofgs]__", "", .)), Kingdom:Species) %>%
     mutate_each(funs(ifelse(. == "", NA, .)), Kingdom:Species)
   md <- md %>%
     mutate(
-      Species = ifelse(!is.na(Genus) & !is.na(Species),
-                       paste(as.character(Genus), as.character(Species)),
-                       Species))
-  md <- reorder_taxa(md)
+      Species = ifelse(
+        !is.na(Genus) & !is.na(Species),
+        paste(as.character(Genus), as.character(Species)),
+        Species))
+  md <- eclectic::reorder_taxa(md)
   rownames(md) <- md$otu
-  md$MinRank <- tax_climber(md$otu, md, end='Species', label = TRUE, sep="__")
+  md$MinRank <- eclectic::tax_climber(
+    md$otu, md, end='Species', label = TRUE, sep="__")
 
-  agg <- agglomerate(s, cts, md)
+  agg <- eclectic::agglomerate(s, cts, md)
 
   # Re-add samples with no reads
   agg <- left_join(s, agg)
