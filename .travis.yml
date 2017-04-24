@@ -18,4 +18,5 @@ before_install:
 
 script:
   - Rscript -e 'devtools::check()'
-  - Rscript -e 'rmarkdown::render(system.file("generate_figures.Rmd", package="SarcoidMicrobiome"), params=list(data_fp="~/data_files"))'
+#  - Rscript -e 'rmarkdown::render(system.file("generate_figures.Rmd", package="SarcoidMicrobiome"), params=list(data_fp="/home/travis/data_files"))'
+  - Rscript -e 'rmarkdown::render(system.file("generate_figures.Rmd", package="SarcoidMicrobiome"))'

@@ -4,7 +4,7 @@ author: "Erik Clarke"
 date: "4/20/2017"
 output: html_document
 params: 
-  data_fp: "~/data/000_Sarcoidosis/099_Manuscript/data_files"
+  data_fp: "/home/ecl/data/000_Sarcoidosis/099_Manuscript/data_files"
 ---
 
 ```{r setup, error=FALSE}
