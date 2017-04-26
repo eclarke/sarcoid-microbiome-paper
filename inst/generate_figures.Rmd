@@ -5,6 +5,7 @@ date: "4/20/2017"
 output: html_document
 params: 
   data_fp: "/home/ecl/data/000_Sarcoidosis/099_Manuscript/data_files"
+  figure_fp: "/home/ecl/data/000_Sarcoidosis/099_Manuscript/Figures"
 ---
 
 ```{r setup, error=FALSE}
@@ -12,8 +13,23 @@ knitr::opts_chunk$set(error=FALSE)
 library(dplyr)
 library(forcats)
 library(stringr)
+library(ggplot2)
 library(SarcoidMicrobiome)
-SarcoidMicrobiome::opts$set("data_fp", params$data_fp)
+
+opts$data_fp <- params$data_fp
+opts$figure_fp <- params$figure_fp
+
+theme_set(
+  theme_classic(base_size = 12) +
+    theme(
+      plot.title = element_text(hjust=0),
+      axis.ticks = element_line(size=0.75), 
+      axis.line.x = element_line(colour = 'black', size=0.6, linetype='solid'),
+      axis.line.y = element_line(colour = 'black', size=0.6, linetype='solid'),
+      strip.background = element_blank(),
+      strip.text = element_text(face = "bold", hjust=0)
+    )
+)
 ```
 
 ```{r load-data}
@@ -66,10 +82,17 @@ b.its$s$SubjectID <- fct_anon_deterministic(.lnb.unified[[2]], prefix="B")
 b.its$agg <- left_join(b.its$agg, b.its$s)
 ```
 
-## Figure 1
-```{r }
-invisible(within(a.16s, {
-  
+## Fig 1: Set A Barcharts
+```{r a-16s-barcharts}
+invisible(with(a.16s, {  
+  p <- agg %>%
+    filter(SampleType %in% c("lymph_node", "paraffin", "extr_blank")) %>%
+    mutate(SampleType = fct_recode(SampleType, "water"="extr_blank")) %>%
+    mutate(SampleType = relevel(SampleType, "paraffin")) %>%
+    MakeBarchartData() %>%
+    PlotBarchart(x.labs=ln.labels, fill.values=bacterial.colors) %>%
+    SplitBarcharts() %>%
+    SaveBarcharts(file.path(opts$figure_fp, "test_%s.pdf"))
 }))
 ```
 

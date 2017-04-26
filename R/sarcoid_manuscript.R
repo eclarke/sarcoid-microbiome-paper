@@ -1,14 +1,3 @@
-params <- new.env()
-
-#' Get and set global options.
-#' @export
-opts <- list(
-  get = function(key) params$key,
-  set = function(key, value) params$key <- value
-)
-
-
-
 # General functions -------------------------------------------------------
 
 #' Creates a MinRank vector from an agglomerated data frame (based on
@@ -81,7 +70,7 @@ lvl_toend <- function(f, level) {
 }
 
 get_ggplot_legend <- function(p) {
-  gp <- ggplot_gtable(ggplot_build(p))
+  gp <- ggplot2::ggplot_gtable(ggplot2::ggplot_build(p))
   legend_idx <- which(sapply(gp$grobs, function(x) x$name) == "guide-box")
   gp$grobs[[legend_idx]]
 }
@@ -226,163 +215,6 @@ PlotHeatmap <- function(
 
 # Barchart functions ------------------------------------------------------
 
-
-#' Groups taxa into top members and samples by their larger group (if any)
-#' in preparation for plotting summary barcharts
-#' @param agg an agglomerated dataframe
-#' @param grouping.column a column that defines larger groups of samples (optional; set to NA to omit)
-#' @param taxa.level.1 the primary taxonomic rank to show in the barcharts
-#' @param taxa.level.2 the second, higher rank to show
-#' @param top.1 how many colors/levels to display
-#' @param top.2 how many to display for what didn't fit into top.1
-MakeBarchartData <- function(agg, grouping.col="SubjectID",
-                             taxa.level.1="Order", taxa.level.2="Order",
-                             top.1 = 8, top.2 = 0) {
-
-  .data <- agg
-
-  .data$GroupingTaxa <- as.character(.data[[taxa.level.1]])
-  .data$GroupingTaxa[is.na(.data$GroupingTaxa)] <- "Other"
-  .data$GroupingTaxa <- factor(.data$GroupingTaxa)
-
-  .data$GroupingTaxa2 <- as.character(.data[[taxa.level.2]])
-  .data$GroupingTaxa2[is.na(.data$GroupingTaxa2)] <- "Other"
-  .data$GroupingTaxa2 <- factor(.data$GroupingTaxa2)
-
-  # top.taxa <- .data %>% group_by(GroupingTaxa) %>%
-  #   summarize(n=sum(proportion)) %>% top_n(top) %$% GroupingTaxa
-  # top.taxa <- .data %>% filter(GroupingTaxa != "Other") %>%
-  #   group_by_(.dots=c("GroupingTaxa", grouping.col)) %>%
-  #   tally(proportion) %>% top_n(1) %>% select_(.dots=c("GroupingTaxa", "SubjectID")) %>% group_by(GroupingTaxa) %>%
-  #   summarize(n=n()) %>% top_n(top.1) %>% droplevels %$% GroupingTaxa
-  #
-  # Finds the top three taxa in each sample group, then votes on the top n
-  # taxa that appear the most times
-  top.taxa <- .data %>% filter(GroupingTaxa != "Other") %>%
-    group_by_(.dots=c(grouping.col, "GroupingTaxa")) %>%
-    tally(proportion) %>% top_n(3) %>% group_by(GroupingTaxa) %>%
-    summarize(n=n_distinct(SubjectID)) %>% top_n(top.1) %>% droplevels %$%
-    GroupingTaxa
-  nixed.taxa <- levels(.data$GroupingTaxa)[!levels(.data$GroupingTaxa) %in% top.taxa]
-  # Gather the remaining taxa into their higher levels
-  if (top.2 > 0) {
-
-    .data2 <- .data[.data$GroupingTaxa %in% nixed.taxa,]
-    top.taxa2 <- (.data2 %>% group_by_(.dots=c(grouping.col, taxa.level.2)) %>%
-                    tally(proportion) %>% top_n(3) %>% group_by_(taxa.level.2) %>%
-                    summarize(n=n_distinct(SubjectID)) %>% top_n(top.2) %>% droplevels)[[taxa.level.2]]
-    names(top.taxa2) <- paste("Other", top.taxa2)
-    remaining <- levels(.data[[taxa.level.2]])[!levels(.data[[taxa.level.2]]) %in% top.taxa2]
-  }
-
-  if (length(nixed.taxa) == 0) nixed.taxa <- c("placeholder")
-
-  .data3 <- .data %>%
-    mutate(taxa = as.character(fct_collapse(GroupingTaxa, "Other" = nixed.taxa)))
-  if (top.2 > 0) {
-    .data3 <- .data3 %>%
-      mutate(GroupingTaxa2 = factor(ifelse(
-        !GroupingTaxa2 %in% remaining,
-        paste("Other", as.character(GroupingTaxa2)),
-        as.character(GroupingTaxa2)))) %>%
-      mutate(taxa2 = as.character(fct_collapse(GroupingTaxa2, "Other" = remaining))) %>%
-      mutate(taxa = factor(ifelse(taxa == "Other", taxa2, taxa)))
-  }
-  .data3 <- .data3 %>%
-    mutate(taxa = plyr::revalue(taxa, c("Other"=NA))) %>%
-    group_by_(.dots=c("SampleID", "SampleType", "StudyGroup", grouping.col, "taxa")) %>%
-    summarize(count=sum(count, na.rm=TRUE)) %>%
-    # filter(count > 0, !is.na(count)) %>%
-    droplevels() %>% ungroup() %>%
-    mutate(taxa = fct_explicit_na(taxa, na_level="Other")) %>%
-    mutate(taxa = fct_relevel(taxa, as.character(top.taxa)))
-
-  return(.data3)
-}
-
-#' Plots the results of MakeBarchartData as a set of grouped barcharts.
-#' @param .data data.frame from MakeBarchartData
-#' @param x.axis.col the mapping for the x-axis
-#' @param fill.col the mapping for the fill aesthetic
-#' @param x.labels if desired, what to revalue the x-axis labels to
-#' @param grouping.col the grouping columns specified in MakeBarchartData, if any
-#' @param reorder.taxa a noop (do it outside this function)
-#' @return a ggplot object
-PlotBarchart <- function(.data, x.axis.col="SampleType", fill.col="taxa",
-                         x.labels, grouping.col, reorder.taxa=TRUE) {
-  if (missing(x.labels)) {
-    x.scale <- scale_x_discrete(expand=c(0,0))
-  } else {
-    x.scale <- scale_x_discrete(labels=x.labels, expand=c(0,0))
-  }
-
-  p <- ggplot(.data, aes_string(x=x.axis.col, y="count", fill=fill.col))
-
-  if (missing(grouping.col)) {
-    facet_formula <- ". ~ StudyGroup"
-  } else {
-    facet_formula <- sprintf(". ~ %s + StudyGroup", grouping.col)
-  }
-
-  p +
-    geom_bar(stat="identity", position="fill", color="white", size=0.4, width=1) +
-    x.scale +
-    scale_y_continuous(
-      "", expand=c(0,0), labels=scales::percent) +
-    guides(fill=guide_legend(nrow=1, title=NULL)) +
-    theme_bw() +
-    facet_grid(
-      facet_formula,
-      scales="free_x", space="free", switch="x") +
-    theme(
-      axis.text=element_text(size=12),
-      legend.text=element_text(size=14),
-      strip.text.x=element_text(angle=90, vjust=1, hjust=0.5),
-      strip.background = element_blank(),
-      # plot.background=element_rect(fill="white"),
-      legend.position="top",
-      panel.margin.x=unit(0.8, "lines"),
-      panel.border=element_rect(color="black", size=0.8))
-}
-
-#' Based on PlotBarchart, but facets along ID.col. Intended for use with
-#' MakeEqualSizePlots function. Not suggested for use on its own.
-#' @param fill.values the palette to use for the scale_fill_manual
-#' @param ID.col the column with the desired display indices
-PlotSingleBarchart <- function(..., fill.values, fill.breaks=waiver(), ID.col="SubjectID") {
-  p <- PlotBarchart(...) +
-    scale_fill_manual(values=fill.values, breaks=fill.breaks) +
-    facet_wrap(c(ID.col), switch = "y") +
-    coord_flip()
-}
-
-#' Facets on a layout matrix to make individual plot sizes consistent. Removes
-#' the legend; grab and display it separately with get_ggplot_legend.
-#' @param p a ggplot object (whose data will be replaced by the chunked data)
-#' @param data the dataframe to facet
-#' @param .variables a character vector listing the columns to facet by in data
-#' @param at_most make space for at most this many facets
-#' @param ncol the number of columns in the layout matrix (must be multiple of at_most)
-MakeEqualSizePlots <- function(p, data, .variables=c("StudyGroup", "SubjectID"),
-                               at_most=45, ncol=1, extra_text="") {
-
-  plots <- plyr::dlply(data, .variables=.variables, function(dat) {
-    .p <- p %+% dat
-    .p + theme(legend.position="none")
-  })
-
-  n <- length(plots)
-
-  if (n < at_most) {
-    plots[[n + 1]] <- nullGrob()# textGrob(extra_text)
-  } else if (n > at_most) {
-    stop(sprintf(
-      "More plot elements (%d) than at_most parameter (%d).", n-1, at_most))
-  }
-  padding <- rep(n+1, at_most-n)
-  layout <- matrix(c(1:n, padding), ncol=ncol)
-  arrangeGrob(grobs=plots, layout_matrix=layout, top=extra_text)
-}
 
 # Unifrac functions -------------------------------------------------------
 
@@ -716,3 +548,142 @@ LinkMatchedControls <- function(agg, s, md, grouping.col) {
 }
 
 
+
+# Prelude stuff (to be moved) ---------------------------------------------
+
+##
+## Global defaults
+##
+
+ranks.to.test <- c("otu", "Species", "Genus", "Family")
+
+# Dominant bacterial and fungal orders should have consistent colors between
+# plots.
+bacterial.orders <- sort(c(
+  "Burkholderiales",
+  "Bacillales",
+  "Bacteroidales",
+  "Clostridiales",
+  "Actinomycetales",
+  "Rhizobiales",
+  "Lactobacillales",
+  "Neisseriales",
+  "Pseudomonadales",
+  "Sphingomonadales",
+  "Myxococcales",
+  "Gemellales",
+  "Rhodobacterales",
+  "Flavobacteriales",
+  "Enterobacteriales"
+))
+
+other.bacteria <- c(
+  "Other Actinomycetales",
+  "Other Bacillales",
+  "Other Rhizobiales",
+  "Other Burkholderiales",
+  "Other Clostridiales",
+  "Other Lactobacillales",
+  "Other Bacteria")
+
+fungal.orders <- sort(c(
+  "Agaricales",
+  "Capnodiales",
+  "Corticiales",
+  "Eurotiales",
+  "Hypocreales",
+  "Pleosporales",
+  "Saccharomycetales",
+  "Sporidiobolales",
+  "Filobasidiales",
+  "Tremellales",
+  "Polyporales",
+  "Russulales",
+  "Dothideales",
+  "Malasseziales",
+  "Sordariomycetes",
+  "Trichosporonales"
+))
+
+viruses <- sort(c(
+  "Bacillus virus phi29",
+  "Betapapillomavirus 2",
+  "Dyosigmapapillomavirus 1",
+  "Human herpesvirus 7",
+  "Porcine stool-associated circular virus 5",
+  "Torque teno virus 16",
+  "Torque teno virus 19"))
+
+primary.bacterial.colors <- eclpalettes::named_palette(
+  levels=bacterial.orders,
+  colors=eclpalettes::tol_palette(length(bacterial.orders))
+) %>%
+  eclpalettes::color_level("Other", "grey85")
+
+other.bacterial.colors <- eclpalettes::named_palette(
+  levels=other.bacteria,
+  colors=grey.colors(length(other.bacteria), start=0.5)
+)
+
+#' @export
+bacterial.colors <- c(primary.bacterial.colors, other.bacterial.colors)
+
+#' @export
+fungal.colors <- eclpalettes::named_palette(
+  levels=fungal.orders,
+  colors=eclpalettes::tol_palette(length(fungal.orders))
+) %>%
+  eclpalettes::color_level("Fungi (unclassified)", "grey55") %>%
+  eclpalettes::color_level("Other", "grey85")
+
+#' @export
+viral.colors <- eclpalettes::named_palette(
+  levels=viruses,
+  colors=eclpalettes::tol_palette(length(viruses))) %>%
+  eclpalettes::color_level("Other", "grey85")
+
+# Makes LN and BAL filled circles, and paraffin and prewash open circles
+# on barcharts
+#' @export
+ln.labels <-  c("lymph_node"="\u25CF", "paraffin"="\u25CB", "water"="\u2205")
+#' @export
+bal.labels <-  c("BAL"="\u25CF", "prewash"="\u25CB", "water"="\u2205")
+
+# Consistent color/fill pairing for PCoA plots
+#' @export
+pcoa.colors <- c(healthy="#a6611a", sarcoidosis="#018571")
+#' @export
+pcoa.fills <- c(healthy="#dfc27d", sarcoidosis="#80cdc1")
+
+# Consistent theme for horizontal barcharts
+horiz.barchart.theme <- theme(
+  axis.line.y=element_line(color="black", size=1, linetype =1),
+  axis.text.x=element_blank(),
+  axis.text.y=element_text(hjust=0, size=14),
+  axis.title=element_blank(),
+  # strip.text.y=element_text(size=18, angle=180),
+  strip.text.y=element_blank(),
+  axis.ticks.x=element_blank(),
+  plot.margin=unit(c(0.4,0,0.4,0), "lines"),
+  panel.grid=element_blank(),
+  panel.border=element_rect(fill=NA, color="black", size=0.8, linetype=1),
+  legend.key.height=unit(1, "lines"),
+  legend.key.width=unit(1, "lines")
+)
+
+horiz.barchart.guide <- guides(
+  fill=guide_legend(
+    ncol=1, title = NULL,
+    label.theme = element_text(size=10, angle=0),
+    override.aes = list(color="white", size=0.4)))
+
+barcharts.max <- 46
+barcharts.col <- 2
+barcharts.width <- 1.8*(barcharts.col)
+barcharts.height <- (barcharts.max*0.5)/barcharts.col
+
+make_standard_barcharts <- function(plot, data, heading, ...) {
+  MakeEqualSizePlots(
+    plot, data, at_most=barcharts.max, ncol=barcharts.col,
+    extra_text=heading, ...)
+}

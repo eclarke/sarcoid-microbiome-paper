@@ -20,6 +20,8 @@ Depends:
   forcats,
   eclectic,
   tidyr,
-  stringr
+  stringr,
+  gridExtra,
+  memoise
 Imports:
   dplyr

@@ -1,19 +1,21 @@
+
+
 #' Load datasets.
 #' @param set the sample set in question (of A-C, DE)
 #' @param data the data type (of 16S, ITS, virome, or WGS)
 #' @param data_fp path to data files
 #' @import dplyr
-#' @export
-LoadData <- function(
+load_data <- function(
   set=c("A", "B", "C", "DE"),
   data=c("16S", "ITS", "virome", "WGS"),
-  data_fp=opts$get("data_fp"))
+  data_fp=opts$data_fp)
 {
   stopifnot(!is.null(data_fp))
 
   set <- match.arg(set)
   data <- match.arg(data)
 
+  # Valid datasets for the sarcoid microbiome project.
   datasets <- list(
     A=list("16S"=.set_a_16s, "ITS"=.set_a_its),
     B=list("16S"=.set_b_16s, "ITS"=.set_b_its),
@@ -23,11 +25,26 @@ LoadData <- function(
   if (!data %in% names(datasets[[set]]))
     stop("Requested data not available for that set")
 
-  suppressMessages(
+  dataset <- suppressMessages(
     suppressWarnings(
       datasets[[set]][[data]](data_fp)))
+  dataset$sampleset <- set
+  dataset$datatype <- data
 
+  dataset$kingdom <- ifelse(
+    data=="16S", "Bacteria", ifelse(
+      data=="ITS", "Fungi", ifelse(
+        data=="virome", "Viruses", "Lineages")))
+
+  class(dataset) <- c("SarcoidDataset", "list")
+  return(dataset)
 }
+
+#' Load datasets (memoized).
+#' @inheritParams load_data
+#' @export
+LoadData <- memoise::memoise(load_data)
+
 
 # Helper functions --------------------------------------------------------
 .relpath <- function(path, opts) {
