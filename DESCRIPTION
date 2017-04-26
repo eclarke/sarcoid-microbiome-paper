@@ -16,8 +16,9 @@ Depends:
   plyr,
   ape,
   qiimer,
-  readxl
-Imports:
+  readxl,
+  forcats,
   eclectic,
-  dplyr,
   tidyr
+Imports:
+  dplyr

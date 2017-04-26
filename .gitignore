@@ -2,3 +2,5 @@
 .Rhistory
 .RData
 .Ruserdata
+generate_figures.md
+inst/generate_figures.html
