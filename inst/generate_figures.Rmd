@@ -9,6 +9,9 @@ params:
 
 ```{r setup, error=FALSE}
 knitr::opts_chunk$set(error=FALSE)
+library(dplyr)
+library(forcats)
+library(stringr)
 library(SarcoidMicrobiome)
 SarcoidMicrobiome::opts$set("data_fp", params$data_fp)
 ```
@@ -24,9 +27,49 @@ c.vir <- LoadData("C", "virome")
 de.16s <- LoadData("DE", "16S")
 de.its <- LoadData("DE", "ITS")
 de.wgs <- LoadData("DE", "WGS")
+
+# Reconcile and anonymize all the sample names (e.g. subjects) between 
+# 16S/ITS/WGS sequencings of a set
+
+# BAL:
+.c.vir.subjectid <- as.character(c.vir$s$OriginatingSampleID)
+.c.vir.subjectid <- factor(str_replace(.c.vir.subjectid, "HUP", ""))
+.bal.unified <- fct_unify(list(
+  droplevels(c.16s$s$DerivingOriginalSampleID),
+  droplevels(c.its$s$DerivingSampleID),
+  .c.vir.subjectid))
+c.16s$s$SubjectID <- fct_anon_deterministic(.bal.unified[[1]], prefix="C")
+c.16s$agg <- left_join(c.16s$agg, c.16s$s)
+c.its$s$SubjectID <- fct_anon_deterministic(.bal.unified[[2]], prefix="C")
+c.its$agg <- left_join(c.its$agg, c.its$s)
+c.vir$s$SubjectID <- fct_anon_deterministic(.bal.unified[[3]], prefix="C")
+c.vir$agg <- left_join(c.vir$agg, c.vir$s)
+
+# LN/A:
+.a.all <- fct_unify(list(
+  factor(a.16s$s$OriginatingSampleID),
+  factor(a.its$s$OriginatingSampleID)
+))
+a.16s$s$SubjectID <- fct_anon_deterministic(.a.all[[1]], prefix="A")
+a.16s$agg <- left_join(a.16s$agg, a.16s$s)
+a.its$s$SubjectID <- fct_anon_deterministic(.a.all[[2]], prefix="A")
+a.its$agg <- left_join(a.its$agg, a.its$s)
+
+# LN/B:
+.lnb.unified <- fct_unify(list(
+  factor(make.names(as.character(b.16s$s$DerivingOriginalSampleID), allow_=FALSE)),
+  factor(b.its$s$SampleID)
+))
+b.16s$s$SubjectID <- fct_anon_deterministic(.lnb.unified[[1]], prefix="B")
+b.16s$agg <- left_join(b.16s$agg, b.16s$s)
+b.its$s$SubjectID <- fct_anon_deterministic(.lnb.unified[[2]], prefix="B")
+b.its$agg <- left_join(b.its$agg, b.its$s)
 ```
 
+## Figure 1
 ```{r }
-
+invisible(within(a.16s, {
+  
+}))
 ```
 

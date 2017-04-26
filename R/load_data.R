@@ -235,7 +235,7 @@ LoadData <- function(
     ungroup() %>%
     droplevels()
 
-  list(agg, s, md, tree, cts)
+  list(agg=agg, s=s, md=md, tree=tree, cts=cts)
 }
 
 .set_a_its <- function(data_fp) {
@@ -301,7 +301,7 @@ LoadData <- function(
     ungroup() %>%
     droplevels()
 
-  list(agg, s, md, tree, cts=o$counts)
+  list(agg=agg, s=s, md=md, tree=tree, cts=o$counts)
 }
 
 .set_b_its <- function(data_fp) {
@@ -364,7 +364,7 @@ LoadData <- function(
       proportion=count/total) %>%
     ungroup()
 
-  list(s, agg, md, cts=o$counts, tree)
+  list(agg=agg, s=s, md=md, tree=tree, cts=o$counts)
 }
 
 .set_c_its <- function(data_fp) {
@@ -410,7 +410,7 @@ LoadData <- function(
       proportion=count/total) %>%
     ungroup()
 
-  list(s, cts, agg, md)
+  list(agg=agg, s=s, cts=cts, md=md)
 }
 
 .set_c_vir <- function(data_fp) {
@@ -474,7 +474,7 @@ LoadData <- function(
     ungroup() %>%
     droplevels()
 
-  list(s, agg, md, cts)
+  list(agg=agg, s=s, md=md, cts=cts)
 }
 
 .set_de_16s <- function(data_fp) {
@@ -543,7 +543,7 @@ LoadData <- function(
       proportion=count/total) %>%
     ungroup()
 
-  list(s, agg, md, cts)
+  list(agg=agg, s=s, md=md, cts=cts)
 }
 
 .set_de_its <- function(data_fp) {
@@ -569,7 +569,7 @@ LoadData <- function(
     s$SampleID <- do.call(function(...) forcats::fct_recode(factor(s$SampleID), ...), rename.samples)
     md <- md %>% filter(otu %in% agg$otu)
 
-    list(s, agg, md, cts)
+    list(agg=agg, s=s, md=md, cts=cts)
   })
 }
 

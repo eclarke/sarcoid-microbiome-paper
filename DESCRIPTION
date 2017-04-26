@@ -19,6 +19,7 @@ Depends:
   readxl,
   forcats,
   eclectic,
-  tidyr
+  tidyr,
+  stringr
 Imports:
   dplyr
