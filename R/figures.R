@@ -4,11 +4,6 @@
 
 
 
-quick_palette <- function(factor) {
-  eclpalettes::named_palette(
-    levels(factor),
-    eclpalettes::tol_palette(length(levels(factor))))
-}
 
 #' @export
 #' @importFrom magrittr %$%

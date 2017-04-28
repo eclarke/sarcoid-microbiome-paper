@@ -76,43 +76,8 @@ get_ggplot_legend <- function(p) {
 }
 # Color themes ------------------------------------------------------------
 
-scale_fill_custom <- function(..., levels, palette="brewer", other="grey85") {
-  palettes <- list(
-    brewer=RColorBrewer::brewer.pal(length(levels), "Set3"),
-    # Monochrome palettes
-    redmono = c("#99000D", "#CB181D", "#EF3B2C", "#FB6A4A", "#FC9272", "#FCBBA1", "#FEE0D2", "#FFF5F0"),
-    greenmono = c("#005A32", "#238B45", "#41AB5D", "#74C476", "#A1D99B", "#C7E9C0", "#E5F5E0", "#F7FCF5"),
-    bluemono = c("#084594", "#2171B5", "#4292C6", "#6BAED6", "#9ECAE1", "#C6DBEF", "#DEEBF7", "#F7FBFF"),
-    grey8mono = c("#000000","#252525", "#525252", "#737373", "#969696", "#BDBDBD", "#D9D9D9", "#F0F0F0"),
-    grey6mono = c("#242424", "#494949", "#6D6D6D", "#929292", "#B6B6B6", "#DBDBDB"),
-
-    # Qualitative color schemes by Paul Tol
-    tol1qualitative=c("#4477AA"),
-    tol2qualitative=c("#4477AA", "#CC6677"),
-    tol3qualitative=c("#4477AA", "#DDCC77", "#CC6677"),
-    tol4qualitative=c("#4477AA", "#117733", "#DDCC77", "#CC6677"),
-    tol5qualitative=c("#332288", "#88CCEE", "#117733", "#DDCC77", "#CC6677"),
-    tol6qualitative=c("#332288", "#88CCEE", "#117733", "#DDCC77", "#CC6677","#AA4499"),
-    tol7qualitative=c("#332288", "#88CCEE", "#44AA99", "#117733", "#DDCC77", "#CC6677","#AA4499"),
-    tol8qualitative=c("#332288", "#88CCEE", "#44AA99", "#117733", "#999933", "#DDCC77", "#CC6677","#AA4499"),
-    tol9qualitative=c("#332288", "#88CCEE", "#44AA99", "#117733", "#999933", "#DDCC77", "#CC6677", "#882255", "#AA4499"),
-    tol10qualitative=c("#332288", "#88CCEE", "#44AA99", "#117733", "#999933", "#DDCC77", "#661100", "#CC6677", "#882255", "#AA4499"),
-    tol11qualitative=c("#332288", "#6699CC", "#88CCEE", "#44AA99", "#117733", "#999933", "#DDCC77", "#661100", "#CC6677", "#882255", "#AA4499"),
-    tol12qualitative=c("#332288", "#6699CC", "#88CCEE", "#44AA99", "#117733", "#999933", "#DDCC77", "#661100", "#CC6677", "#AA4466", "#882255", "#AA4499"),
-    tol14rainbow=c("#882E72", "#B178A6", "#D6C1DE", "#1965B0", "#5289C7", "#7BAFDE", "#4EB265", "#90C987", "#CAE0AB", "#F7EE55", "#F6C141", "#F1932D", "#E8601C", "#DC050C"),
-    tol21rainbow=c("#771155", "#AA4488", "#CC99BB", "#114477", "#4477AA", "#77AADD", "#117777", "#44AAAA", "#77CCCC", "#117744", "#44AA77", "#88CCAA", "#777711", "#AAAA44", "#DDDD77", "#774411", "#AA7744", "#DDAA77", "#771122", "#AA4455", "#DD7788")[1:length(levels)],
-    viridis=viridis::plasma(n=length(levels)),
-    gdocs=gdocs_pal()(length(levels))
-  )
-  pal <- palettes[[palette]]
-  names(pal) <- levels
-  pal["Other"] <- other
-  scale_fill_manual(..., values=pal, na.value=other)
-}
-
-alt_heatmap_scale <- function(threshold=0.6, ...) {
-  scale_fill_gradientn(colors = c("#FFE591", "#EF2D2D", "#EF2D2D"), values=c(0,threshold,1), ...)
-  # scale_fill_gradientn(colors = rev(heat.colors(5)[1:3]), values=c(0,threshold,1), ...)
+quick_palette <- function(levels) {
+  eclpalettes::named_palette(levels, eclpalettes::tol_palette(length(levels)))
 }
 
 # Heatmap functions -------------------------------------------------------
@@ -586,7 +551,7 @@ other.bacteria <- c(
   "Other Lactobacillales",
   "Other Bacteria")
 
-fungal.orders <- sort(c(
+fungal.orders <- rev(sort(c(
   "Agaricales",
   "Capnodiales",
   "Corticiales",
@@ -603,7 +568,7 @@ fungal.orders <- sort(c(
   "Malasseziales",
   "Sordariomycetes",
   "Trichosporonales"
-))
+)))
 
 viruses <- sort(c(
   "Bacillus virus phi29",
@@ -670,17 +635,6 @@ horiz.barchart.theme <- theme(
   legend.key.height=unit(1, "lines"),
   legend.key.width=unit(1, "lines")
 )
-
-horiz.barchart.guide <- guides(
-  fill=guide_legend(
-    ncol=1, title = NULL,
-    label.theme = element_text(size=10, angle=0),
-    override.aes = list(color="white", size=0.4)))
-
-barcharts.max <- 46
-barcharts.col <- 2
-barcharts.width <- 1.8*(barcharts.col)
-barcharts.height <- (barcharts.max*0.5)/barcharts.col
 
 make_standard_barcharts <- function(plot, data, heading, ...) {
   MakeEqualSizePlots(

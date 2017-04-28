@@ -10,12 +10,12 @@ params:
 
 ```{r setup, error=FALSE}
 knitr::opts_chunk$set(error=FALSE)
-library(dplyr)
+library(SarcoidMicrobiome)
+library(ggbeeswarm)
 library(forcats)
 library(stringr)
 library(ggplot2)
-library(SarcoidMicrobiome)
-
+library(dplyr)
 opts$data_fp <- params$data_fp
 opts$figure_fp <- params$figure_fp
 
@@ -85,14 +85,293 @@ b.its$agg <- left_join(b.its$agg, b.its$s)
 ## Fig 1: Set A Barcharts
 ```{r a-16s-barcharts}
 invisible(with(a.16s, {  
-  p <- agg %>%
+  agg %>%
     filter(SampleType %in% c("lymph_node", "paraffin", "extr_blank")) %>%
     mutate(SampleType = fct_recode(SampleType, "water"="extr_blank")) %>%
     mutate(SampleType = relevel(SampleType, "paraffin")) %>%
     MakeBarchartData() %>%
-    PlotBarchart(x.labs=ln.labels, fill.values=bacterial.colors) %>%
+    PlotBarchart() %>%
     SplitBarcharts() %>%
-    SaveBarcharts(file.path(opts$figure_fp, "test_%s.pdf"))
+    SaveBarcharts(
+      file.path(opts$figure_fp, sprintf("Fig1A_Set%s_%s_%%s.pdf", sampleset, datatype)))
 }))
 ```
 
+```{r a-its-barcharts}
+invisible(with(a.its, {
+  # browser()
+  agg %>%
+    filter(SampleType %in% c("lymph_node", "paraffin", "extr_blank")) %>%
+    mutate(SampleType = fct_recode(SampleType, "water"="extr_blank")) %>%
+    mutate(SampleType = relevel(SampleType, "paraffin")) %>%
+    ungroup() %>%
+    mutate(
+      MinRankOrder = SarcoidMicrobiome:::min_rank(., "Order")) %>%
+    mutate(
+      MinRankOrder = forcats::fct_recode(
+        MinRankOrder, 
+        Other="Fungi", 
+        Other="uncultured fungus (phylum)", 
+        Other="Indeterminate",
+        Other="uncultured Acremonium (order)")) %>%
+    MakeBarchartData(taxa.level="MinRankOrder") %>%
+    PlotBarchart() %>%
+    SplitBarcharts() %>%
+    SaveBarcharts(
+      file.path(opts$figure_fp, sprintf("Fig1B_Set%s_%s_%%s.pdf", sampleset, datatype)))
+}))
+```
+
+
+```{r a-cladosporiaceae}
+invisible(within(a.its, {
+  # browser()
+  
+  .s <- s %>% select(SampleID, StudyGroup, SampleType, SubjectID)
+  
+  clado <- agg %>% 
+    filter(!SampleType %in% c("extr_blank", "pcr_h2o")) %>%
+    select(SampleID, Family, count) %>%
+    filter(Family == "Cladosporiaceae") %>%
+    count(SampleID, wt=count) %>%
+    droplevels() %>%
+    left_join(s) %>%
+    select(SampleID, n, SampleType, SubjectID) %>%
+    complete(SampleType, SubjectID, fill=list(n=0)) %>%
+    filter(SampleType %in% c("paraffin", "lymph_node")) %>%
+    select(-SampleID) %>%
+    left_join(.s) %>%
+    filter(!is.na(SampleID))
+  
+  .s2 <- .s %>% distinct(SubjectID, StudyGroup) %>% droplevels()
+  
+  clado.diff <- group_by(clado, SubjectID) %>%
+    select(SubjectID, n, SampleType) %>%
+    spread(SampleType, n) %>%
+    mutate(delta=lymph_node-paraffin) %>%
+    ungroup() %>%
+    distinct(SubjectID, delta) %>%
+    left_join(.s2) %>%
+    mutate(delta.log10=sign(delta)*log10(abs(delta))) %>%
+    mutate(delta.log10=ifelse(is.nan(delta.log10), 0, delta.log10)) %>%
+    mutate(sign = delta.log10 > 0)
+  
+  p <- ggplot(clado.diff, aes(x=StudyGroup, y=delta.log10)) +
+    geom_hline(yintercept=0, linetype=2) +
+    geom_boxplot(fill=NA, size=0.5, fatten=4) +
+    # scale_fill_manual(values=pcoa.fills, guide=FALSE) +
+    # scale_color_manual(values=pcoa.colors, guide=FALSE) +
+    # scale_color_manual("",
+    #   values=c("TRUE"="black", "FALSE"="black"),
+    #   labels=c("TRUE"="Greater in sample", "FALSE"="No greater in sample than env."),
+    #   breaks=c("TRUE", "FALSE")) +
+    scale_fill_manual("",
+      values=c("TRUE"="#2166ac", "FALSE"="#d1e5f0"),
+      labels=c("TRUE"="Greater in sample", "FALSE"="No greater in sample than env."),
+      breaks=c("TRUE", "FALSE")) +
+    geom_quasirandom(
+      aes(fill=sign), shape=21, bandwidth = 0.1, width=0.3, size=2 ) +
+    scale_y_continuous(
+      expand=c(0,0),
+      breaks=c(-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5), 
+      limits=c(-5,5), 
+      labels = function(x) scales::comma(10^(abs(x)) * sign(x))
+      ) +
+    scale_x_discrete(
+      labels=c("healthy"="Healthy", "sarcoidosis"="Sarcoidosis")) +
+    labs(
+      y="Sample - Environment (reads)", 
+      x=NULL, 
+      title=NULL) +
+    theme_classic(base_size = 8) +
+    theme(
+      axis.text=element_text(color="black"),
+      axis.line=element_line(size=1, color="black", linetype=1),
+      axis.line.x=element_line(size=1, color="black", linetype=1),
+      axis.line.y=element_line(size=1, color="black", linetype=1),
+      panel.grid.minor=element_blank(),
+      legend.position="bottom",
+      legend.direction="vertical")
+
+  plot(p)
+  
+  ggsave(
+    file.path(opts$figure_fp, "Fig1C_SetA_Cladosporiaceae.pdf"),
+    plot=p,
+    device=cairo_pdf, family="Helvetica",
+    height=3, width=2.1)
+}))
+```
+
+## Fig 2: Set B Barcharts
+
+```{r b-16s-barcharts}
+invisible(within(b.16s, {
+  agg %>%
+    filter(SampleType %in% c("lymph_node", "water")) %>%
+    mutate(StudyGroup = fct_recode(StudyGroup, "extr_ctrl"="ext_ctrl")) %>%
+    # mutate(SubjectID = ifelse(SampleType == "water", "B00", as.character(SubjectID))) %>%
+    MakeBarchartData() %>%
+    PlotBarchart() %>%
+    SplitBarcharts() %>%
+    SaveBarcharts(
+      file.path(opts$figure_fp, sprintf("Fig2A_Set%s_%s_%%s.pdf", sampleset, datatype)),
+      height=opts$barchart.height/1.5)
+}))
+```
+
+```{r b-its-barcharts}
+invisible(within(b.its, {
+  agg %>%
+    group_by(SubjectID) %>%
+    filter(sum(count) > 0) %>%
+    filter(SampleType %in% c("lymph_node", "extr_blank")) %>%
+    mutate(SampleType = fct_recode(SampleType, "water"="extr_blank")) %>%
+    ungroup() %>%
+    mutate(
+      MinRankOrder = SarcoidMicrobiome:::min_rank(., "Order")) %>%
+    mutate(
+      MinRankOrder = forcats::fct_recode(
+        MinRankOrder, 
+        Other="Fungi", 
+        Other="uncultured fungus (phylum)", 
+        Other="Indeterminate")) %>%
+    MakeBarchartData(taxa.level = "MinRankOrder") %>%
+    PlotBarchart() %>%
+    SplitBarcharts() %>%
+    SaveBarcharts(
+      file.path(opts$figure_fp, sprintf("Fig2B_Set%s_%s_%%s.pdf", sampleset, datatype)),
+      height=opts$barchart.height/1.5)
+}))
+```
+
+## Figure 3: Set C Barcharts
+
+```{r c-16s-barcharts}
+invisible(within(c.16s, {
+   agg %>%
+    filter(SampleType %in% c("BAL", "prewash")) %>%
+    mutate(SampleType = relevel(SampleType, "prewash")) %>%
+    droplevels() %>%
+    MakeBarchartData() %>%
+    group_by(SubjectID, StudyGroup) %>% 
+    complete(SampleType, fill = list(count=0)) %>%
+    PlotBarchart(fill.values = bacterial.colors, x.labs = opts$bal.labels) %>%
+    SplitBarcharts(groups = c("sarcoidosis", "healthy")) %>%
+    SaveBarcharts(
+      file.path(opts$figure_fp, sprintf("Fig3A_Set%s_%s_%%s.pdf", sampleset, datatype)))
+}))
+```
+
+```{r c-its-barcharts}
+invisible(within(c.its, {
+   agg %>%
+    filter(SampleType %in% c("BAL", "prewash")) %>%
+    mutate(SampleType = relevel(SampleType, "prewash")) %>%
+    droplevels() %>%
+    MakeBarchartData() %>%
+    group_by(SubjectID, StudyGroup) %>% 
+    complete(SampleType, fill = list(count=0)) %>%
+    group_by(SubjectID) %>%
+    filter(sum(count) > 0) %>%
+    PlotBarchart(fill.values = fungal.colors, x.labs = opts$bal.labels) %>%
+    SplitBarcharts(groups = c("sarcoidosis", "healthy")) %>%
+    SaveBarcharts(
+      file.path(opts$figure_fp, sprintf("Fig3B_Set%s_%s_%%s.pdf", sampleset, datatype)))
+}))
+```
+
+```{r c-virome-barcharts}
+invisible(within(c.vir, {
+  tech.contam <- c(
+    "Enterobacteria phage M13", "Enterobacteria phage T7", 
+    "Enterobacteria phage phiX174 sensu lato","Bacillus phage phi29", 
+    "Pseudomonas phage phi6", "Shamonda virus", "Human herpesvirus 7", 
+    "Human herpesvirus 6", "Cyprinid herpesvirus 3")
+   agg %>%
+     filter(LibraryType == "Genomiphi") %>%
+     filter(SampleType %in% c("BAL", "prewash")) %>%
+     filter(!Species %in% tech.contam) %>% 
+     mutate(SampleType = relevel(SampleType, "prewash")) %>%
+     droplevels() %>%
+     MakeBarchartData(taxa.level = "Family") %>%
+     group_by(SubjectID, StudyGroup) %>% 
+     complete(SampleType, fill = list(count=0)) %>%
+     group_by(SubjectID) %>%
+     filter(sum(count) > 0) %>%
+     PlotBarchart(fill.values = NULL, x.labs = opts$bal.labels) %>%
+     SplitBarcharts(groups = c("sarcoidosis", "healthy")) %>%
+     SaveBarcharts(
+       file.path(opts$figure_fp, sprintf("Fig3C_Set%s_%s_%%s.pdf", sampleset, datatype)))
+}))
+```
+
+## Figure 4: Sets D/E Barcharts
+
+```{r de-16s-barcharts}
+invisible(within(de.16s, {
+  .s <- distinct(s, Sample, .keep_all = TRUE) %>% select(-SampleID)
+  .agg <- agg %>% group_by(Sample, otu) %>%
+    summarize(count=sum(count)) %>%
+    group_by(Sample) %>%
+    mutate(proportion=count/sum(count)) %>%
+    left_join(.s) %>%
+    left_join(md) %>%
+    rename(SampleID=Sample) %>%
+    mutate(SubjectID=SampleID) %>% droplevels()
+  tmp <- .agg %>%
+    MakeBarchartData() %>%
+    PlotBarchart(
+      x.col="SampleID", 
+      x.labs=c("B"="BL", "Sal"="SL"),
+      theme=opts$barchart.theme + theme(axis.text.y=element_text(family="mono"))) %>%
+    SplitBarcharts(groups=c("Sarcoidosis", "Control")) %>%
+    SaveBarcharts(
+       file.path(opts$figure_fp, sprintf("Fig4A_Set%s_%s_%%s.pdf", sampleset, datatype)),
+       height=opts$barchart.height/1.5)
+}))
+```
+
+```{r de-its-barcharts}
+invisible(within(de.its, {
+  agg %>%
+    mutate(SampleType = fct_recode(SampleType, "water"="extr_blank")) %>%
+    mutate(SubjectID=SampleID) %>%
+    mutate(
+      MinRankOrder = SarcoidMicrobiome:::min_rank(., "Order")) %>%
+    mutate(
+      MinRankOrder = forcats::fct_recode(
+        MinRankOrder, 
+        Other="Fungi", 
+        Other="uncultured fungus (phylum)", 
+        Other="Indeterminate",
+        Other="Coniochaetales")) %>%
+    MakeBarchartData(taxa.level="MinRankOrder") %>%
+    PlotBarchart(
+      x.col="SubjectID",
+      x.labs=c("Blank"="BL", "Saline"="SL", "Kveim"="KV", "Spleen1"="S1", "Spleen2"="S2", "Spleen3"="S3"),
+      theme=opts$barchart.theme + theme(axis.text.y=element_text(family="mono"))) %>%
+    SplitBarcharts(groups=c("Sarcoidosis", "Control")) %>%
+    SaveBarcharts(
+      file.path(opts$figure_fp, sprintf("Fig4B_Set%s_%s_%%s.pdf", sampleset, datatype)),
+      height=opts$barchart.height/1.5)
+  # browser()
+}))
+```
+
+```{r de-wgs-barcharts}
+invisible(within(de.wgs, {
+  agg %>% 
+    filter(Order != "Primates") %>%
+    mutate(SubjectID=SampleID) %>%
+    MakeBarchartData() %>%
+    PlotBarchart(
+      x.col="SampleID", 
+      x.labs=c("B"="BL", "Sal"="SL"),
+      theme=opts$barchart.theme + theme(axis.text.y=element_text(family="mono"))) %>%
+    SplitBarcharts(groups=c("Sarcoidosis", "Control")) %>%
+    SaveBarcharts(
+       file.path(opts$figure_fp, sprintf("Fig4C_Set%s_%s_%%s.pdf", sampleset, datatype)),
+       height=opts$barchart.height/1.5)
+}))
+```

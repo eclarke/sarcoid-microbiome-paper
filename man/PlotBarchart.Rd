@@ -5,7 +5,10 @@
 \title{Plots the results of MakeBarchartData as a set of grouped barcharts.}
 \usage{
 PlotBarchart(.data, x.col = "SampleType", fill.col = "taxa",
-  grouping.col = "SubjectID", x.labs, fill.values, fill.breaks)
+  grouping.col = "SubjectID", x.labs = attributes(.data)$labels,
+  fill.values = attributes(.data)$fill,
+  fill.breaks = rev(levels(.data$taxa)), theme = opts$barchart.theme,
+  guide = opts$barchart.guide)
 }
 \arguments{
 \item{.data}{result from \code{\link{MakeBarchartData}}}
@@ -20,7 +23,9 @@ PlotBarchart(.data, x.col = "SampleType", fill.col = "taxa",
 
 \item{fill.values}{named vector for fill colors}
 
-\item{fill.breaks}{ordering of the fills}
+\item{fill.breaks}{ordering of the fills (currently a noop)}
+
+\item{theme}{a theme object to add}
 }
 \value{
 a \code{\link{ggplot2::ggplot}} object

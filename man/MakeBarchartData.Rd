@@ -5,8 +5,8 @@
 \title{Groups taxa into top members and samples by their larger group (if any)
 in preparation for plotting summary barcharts}
 \usage{
-MakeBarchartData(agg, grouping.col = "SubjectID", taxa.level = "Order",
-  top.n = 8)
+MakeBarchartData(agg, sampleset, datatype, grouping.col = "SubjectID",
+  taxa.level = "Order", top.n = 8)
 }
 \arguments{
 \item{agg}{an agglomerated dataframe (\code{\link{eclectic::agglomerate}})}

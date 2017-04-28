@@ -647,5 +647,5 @@ LoadData <- memoise::memoise(load_data)
       proportion=count/total) %>%
     ungroup()
 
-  list(s, agg, md, cts)
+  list(s=s, agg=agg, md=md, cts=cts)
 }

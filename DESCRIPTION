@@ -22,6 +22,8 @@ Depends:
   tidyr,
   stringr,
   gridExtra,
-  memoise
+  memoise,
+  ggplot2,
+  ggbeeswarm
 Imports:
   dplyr

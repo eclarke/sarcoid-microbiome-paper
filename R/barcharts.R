@@ -6,8 +6,13 @@
 #' @param taxa.level the taxonomic rank to show in the barcharts
 #' @param top.n how many colors/levels to display
 #' @export
-MakeBarchartData <- function(agg, grouping.col="SubjectID", taxa.level="Order", top.n = 8) {
+MakeBarchartData <- function(
+  agg, sampleset, datatype, grouping.col="SubjectID", taxa.level="Order",
+  top.n = 8)
+{
 
+  if (missing(sampleset)) sampleset <- get("sampleset", parent.frame())
+  if (missing(datatype)) datatype <- get("datatype", parent.frame())
   agg$GroupingTaxa <- as.character(agg[[taxa.level]])
   agg$GroupingTaxa[is.na(agg$GroupingTaxa)] <- "Other"
   agg$GroupingTaxa <- factor(agg$GroupingTaxa)
@@ -24,15 +29,30 @@ MakeBarchartData <- function(agg, grouping.col="SubjectID", taxa.level="Order", 
 
   if (length(nixed.taxa) == 0) nixed.taxa <- c("placeholder")
 
-  agg %>%
+  data <- agg %>%
     mutate(taxa = as.character(fct_collapse(GroupingTaxa, "Other" = nixed.taxa))) %>%
     mutate(taxa = plyr::revalue(taxa, c("Other"=NA))) %>%
     group_by_(.dots=c("SampleID", "SampleType", "StudyGroup", grouping.col, "taxa")) %>%
     summarize(count=sum(count, na.rm=TRUE)) %>%
     droplevels() %>% ungroup() %>%
     mutate(taxa = fct_explicit_na(taxa, na_level="Other")) %>%
-    mutate(taxa = fct_relevel(taxa, as.character(top.taxa)))
+    mutate(taxa = fct_relevel(taxa, as.character(top.taxa))) %>%
+    mutate(
+      taxa=lvl_toend(taxa, "Fungi (unclassified)"),
+      taxa=lvl_toend(taxa, "Other")
+    )
 
+  attr(data, "labels") <- list(
+    "A"=opts$ln.labels,
+    "B"=opts$ln.labels,
+    "C"=opts$bal.labels)[[sampleset]]
+
+
+  attr(data, "fill") <- list(
+    "16S"=bacterial.colors,
+    "ITS"=fungal.colors)[[datatype]]
+
+  data
 }
 
 #' Plots the results of MakeBarchartData as a set of grouped barcharts.
@@ -42,21 +62,29 @@ MakeBarchartData <- function(agg, grouping.col="SubjectID", taxa.level="Order", 
 #' @param grouping.col the grouping columns specified in MakeBarchartData, if any
 #' @param x.labs if desired, what to revalue the x-axis labels to
 #' @param fill.values named vector for fill colors
-#' @param fill.breaks ordering of the fills
+#' @param fill.breaks ordering of the fills (currently a noop)
+#' @param theme a theme object to add
 #' @return a \code{\link{ggplot2::ggplot}} object
 #' @export
 PlotBarchart <- function(
-  .data, x.col="SampleType", fill.col="taxa", grouping.col="SubjectID", x.labs,
-  fill.values, fill.breaks)
+  .data, x.col="SampleType", fill.col="taxa", grouping.col="SubjectID",
+  x.labs = attributes(.data)$labels,
+  fill.values=attributes(.data)$fill,
+  fill.breaks = rev(levels(.data$taxa)),
+  theme=opts$barchart.theme,
+  guide=opts$barchart.guide)
 {
 
-  if (missing(x.labs)) {
-    x.scale <- scale_x_discrete(expand=c(0,0))
+  x.scale <- if (is.null(x.labs)) {
+    scale_x_discrete(expand=c(0,0))
   } else {
-    x.scale <- scale_x_discrete(labels=x.labs, expand=c(0,0))
+    scale_x_discrete(labels=x.labs, expand=c(0,0))
   }
 
-  if (missing(fill.breaks)) fill.breaks <- rev(levels(.data$taxa))
+  if (is.null(fill.values)) {
+    fill.values <- quick_palette(levels(.data$taxa)) %>%
+      eclpalettes::color_level("Other", "grey85")
+  }
 
   p <- ggplot(.data, aes_string(x=x.col, y="count", fill=fill.col))
 
@@ -66,14 +94,14 @@ PlotBarchart <- function(
     facet_formula <- sprintf(". ~ %s + StudyGroup", grouping.col)
   }
 
-  p + geom_bar(stat="identity", position="fill", color="white", size=0.4, width=1) +
+  p + geom_bar(stat="identity", position="fill", color="white", size=0.1, width=0.95) +
     x.scale +
-    scale_fill_manual(values=fill.values, breaks=fill.breaks) +
+    scale_fill_manual(values=fill.values) +#, breaks=fill.breaks) +
     scale_y_continuous("", expand=c(0,0)) +
     facet_wrap(c(grouping.col), switch="y") +
     coord_flip() +
-    horiz.barchart.theme +
-    horiz.barchart.guide
+    theme +
+    guide
 }
 
 #' @export
@@ -85,6 +113,7 @@ SplitBarcharts <- function(
   plots <- lapply(groups, function(group) {
     data <- plot$data %>% filter(StudyGroup == group)
 
+    # browser()
     little.barcharts <- plyr::dlply(data, .variables=variables, function(dat) {
       p <- plot %+% dat
       p + theme(legend.position="none")
@@ -114,8 +143,15 @@ SaveBarcharts <- function(
 {
   sapply(names(barcharts), function(name) {
     filename <- sprintf(path, name)
+    if (name == "legend") {
+      width=2
+      height=2
+    }
     ggsave(
-      filename, barcharts[[name]], device=cairo_pdf,
-      width=width, height=height)
-  })
+      filename, barcharts[[name]], width=width, height=height, device=cairo_pdf)
+    })
+}
+
+pick_attr <- function(data, attr) {
+  attributes(data)[[attr]]
 }
