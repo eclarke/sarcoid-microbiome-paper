@@ -25,6 +25,7 @@ Depends:
   memoise,
   ggplot2,
   eclpalettes,
-  ggbeeswarm
+  ggbeeswarm,
+  Cairo
 Imports:
   dplyr

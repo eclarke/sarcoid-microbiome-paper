@@ -7,7 +7,7 @@ cache: packages
 addons:
   apt:
     packages:
-      - cairo
+      - libcairo2
 
 r_packages:
   - knitr
