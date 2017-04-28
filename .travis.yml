@@ -4,6 +4,11 @@ language: R
 sudo: false
 cache: packages
 
+addons:
+  apt:
+    packages:
+      - cairo
+
 r_packages:
   - knitr
   - rmarkdown
