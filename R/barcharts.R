@@ -22,8 +22,8 @@ MakeBarchartData <- function(
   top.taxa <- agg %>% filter(GroupingTaxa != "Other") %>%
     group_by_(.dots=c(grouping.col, "GroupingTaxa")) %>%
     tally(proportion) %>% top_n(3) %>% group_by(GroupingTaxa) %>%
-    summarize(n=n_distinct(SubjectID)) %>% top_n(top.n) %>% droplevels %$%
-    GroupingTaxa
+    summarize(n=n_distinct(SubjectID)) %>% top_n(top.n) %>% droplevels
+  top.taxa <- top.taxa$GroupingTaxa
 
   nixed.taxa <- levels(agg$GroupingTaxa)[!levels(agg$GroupingTaxa) %in% top.taxa]
 

@@ -6,7 +6,6 @@
 
 
 #' @export
-#' @importFrom magrittr %$%
 #' @import ggplot2
 GenerateBarchart <- function(
   data, transformations, fills=NULL, labels=NULL, ...)
