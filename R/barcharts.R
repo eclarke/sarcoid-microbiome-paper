@@ -139,7 +139,7 @@ SplitBarcharts <- function(
 
 #' @export
 SaveBarcharts <- function(
-  barcharts, path, height=opts$barchart.height, width=opts$barchart.width)
+  barcharts, path, height=opts$barchart.height, width=opts$barchart.width, device=opts$device)
 {
   sapply(names(barcharts), function(name) {
     filename <- sprintf(path, name)
@@ -148,7 +148,7 @@ SaveBarcharts <- function(
       height=2
     }
     ggsave(
-      filename, barcharts[[name]], width=width, height=height, device=cairo_pdf)
+      filename, barcharts[[name]], width=width, height=height, device=cairo_failsafe)
     })
 }
 

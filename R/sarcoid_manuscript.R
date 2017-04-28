@@ -74,6 +74,13 @@ get_ggplot_legend <- function(p) {
   legend_idx <- which(sapply(gp$grobs, function(x) x$name) == "guide-box")
   gp$grobs[[legend_idx]]
 }
+
+#' Try to use \code{cairo_pdf}, but fall back to \code{pdf} if that doesn't work.
+#' @param ... arguments to cairo_pdf/pdf
+#' @export
+cairo_failsafe <- function(...) {
+  tryCatch(cairo_pdf(...), error=pdf(...))
+}
 # Color themes ------------------------------------------------------------
 
 quick_palette <- function(levels) {

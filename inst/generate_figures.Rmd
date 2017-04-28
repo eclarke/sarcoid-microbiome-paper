@@ -6,6 +6,7 @@ output: html_document
 params: 
   data_fp: "/home/ecl/data/000_Sarcoidosis/099_Manuscript/data_files"
   figure_fp: "/home/ecl/data/000_Sarcoidosis/099_Manuscript/Figures"
+  device: ""
 ---
 
 ```{r setup, error=FALSE}
@@ -198,7 +199,7 @@ invisible(within(a.its, {
   ggsave(
     file.path(opts$figure_fp, "Fig1C_SetA_Cladosporiaceae.pdf"),
     plot=p,
-    device=cairo_pdf, family="Helvetica",
+    device=cairo_failsafe, family="Helvetica",
     height=3, width=2.1)
 }))
 ```
