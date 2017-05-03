@@ -2,7 +2,10 @@
 
 export(LoadData)
 export(MakeBarchartData)
+export(MakeHeatmapData)
+export(PCoAChunk)
 export(PlotBarchart)
+export(PlotHeatmap)
 export(SaveBarcharts)
 export(SplitBarcharts)
 export(bacterial.colors)

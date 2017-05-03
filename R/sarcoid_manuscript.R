@@ -99,13 +99,14 @@ quick_palette <- function(levels) {
 #' @param min.rank.2 (optional) higher rank to prefix min.rank.1 (e.g. Phylum)
 #' Uses tax_climber to select next most specific rank if not available.
 #' @param min.samples a row must appear more than this number of samples to be shown
+#' @export
 MakeHeatmapData <- function(agg, s, min.rank.1 = "Genus", min.rank.2 = NA, min.samples=1) {
   # Create the y-axes for the data via the desired taxonomic rank level(s)
   .agg <- agg %>% mutate(
-    MinRank1 = .makeMinRankFromAgg(agg, end=min.rank.1, label=TRUE, sep="__"))
+    MinRank1 = min_rank(agg, end=min.rank.1, label=FALSE))
   if (!is.na(min.rank.2)) {
     .agg <- .agg %>% mutate(
-      MinRank2 = .makeMinRankFromAgg(agg, end=min.rank.2, label=TRUE, sep="__"),
+      MinRank2 = min_rank(agg, end=min.rank.2, label=TRUE, sep="__"),
       MinRank1 = paste(MinRank2, MinRank1)
     )
   }
@@ -126,8 +127,8 @@ MakeHeatmapData <- function(agg, s, min.rank.1 = "Genus", min.rank.2 = NA, min.s
   .mat$MinRank1 <- NULL
 
   # Cluster and pull out row order
-  minrank_order <- dist(.mat, method="euclidean") %>%
-    hclust(method="average") %$% order
+  minrank_order <- (dist(.mat, method="euclidean") %>%
+    hclust(method="average"))$order
 
   .agg %>%
     # Reorder by clustering order
@@ -151,6 +152,7 @@ MakeHeatmapData <- function(agg, s, min.rank.1 = "Genus", min.rank.2 = NA, min.s
 #' @param use.reads if TRUE, plot the raw readcounts; if FALSE, use proportions
 #' @param threshold at what relative proportion the color scale goes to red
 #' @param x.text display labels on the x-axis
+#' @export
 PlotHeatmap <- function(
   heatmap.data, use.reads=TRUE, threshold=0.6, x.text=TRUE, x.axis='SampleID') {
 
@@ -172,116 +174,16 @@ PlotHeatmap <- function(
     theme(
       strip.text.y = element_text(angle=0, vjust=0),
       strip.text.x = element_text(angle=90, vjust=0),
-      panel.border = element_blank()) +
-    if (x.text) {
-      p <- p + theme(
-        axis.text.x = element_text(angle=45, hjust=1, vjust=1))
-    } else{
-      p <- p + theme(
-        axis.text.x = element_blank(),
-        axis.ticks.x = element_blank())
-    }
+      panel.border = element_blank())
+  if (x.text) {
+    p <- p + theme(
+      axis.text.x = element_text(angle=45, hjust=1, vjust=1))
+  } else{
+    p <- p + theme(
+      axis.text.x = element_blank(),
+      axis.ticks.x = element_blank())
+  }
   p
-}
-
-
-# Barchart functions ------------------------------------------------------
-
-
-# Unifrac functions -------------------------------------------------------
-
-#' Calculates the generalized UniFrac distances for an agglomerated dataframe.
-#' This involves a random rooting of the tree and rarefaction, which are
-#' non-deterministic. For reproducibility, recommend calling set.seed before this
-#' @param agg agglomerated dataframe
-#' @param s sample metadata dataframe
-#' @param tree a tree (will root using random node)
-#' @param alpha the alpha parameter for GUniFrac
-MakeUnifracData <- function(agg, s, tree, rarefy.depth, alpha=0.5) {
-
-  # Root tree
-  .rtree <- root_tree(tree, agg$otu)
-  # Create sample matrix
-  .mat <- counts_matrix(agg)
-  # Keep only otus that appear in the tree
-  .mat <- .mat[, colnames(.mat) %in% .rtree$tip.label]
-
-  # Rarefy to specified depth
-  if (!missing(rarefy.depth)) {
-    .mat.rf <- vegan::rrarefy(.mat, sample=rarefy.depth)
-  } else {
-    .mat.rf <- .mat
-  }
-
-  # Calculate generalized UniFrac
-  .unifrac <- GUniFrac(.mat.rf, .rtree, alpha=alpha)$unifracs
-  # Return the generalized UniFrac matrix at specified alpha level
-  .unifrac[,,paste0("d_",alpha)]
-}
-
-#' Performs principle coordinates analysis on a GUniFrac distance and merges
-#' sample metadata for plotting.
-#' @param unifrac.data the output of MakeUnifracData
-#' @param s sample metadata dataframe
-#' @param grouping.col column in s defining centroid groups
-MakePCOAData <- function(unifrac.data, s, grouping.col) {
-  .pc <- data.frame(ape::pcoa(unifrac.data)$vectors)[,1:4]
-  .pc$SampleID <- rownames(.pc)
-  .pc <- left_join(.pc, s)
-  if (!missing(grouping.col)) {
-    .pc <- group_by_(.pc, .dots=list(grouping.col)) %>%
-      mutate(med.x=mean(Axis.1), med.y=mean(Axis.2))
-  }
-  .pc
-}
-
-#' Performs PERMANOVA on the given terms using the unifrac distance matrix.
-#' @param unifrac.data matrix/dist of unifrac distances (coerced to dist if not)
-#' @param s sample metadata
-#' @param terms a string giving the RHS of the adonis formula (eg "counts*StudyGroup")
-TestPermanova <- function(unifrac.data, s, terms) {
-
-  .s <- filter(s, SampleID %in% rownames(unifrac.data))
-  .s <- .s[match(rownames(unifrac.data), .s$SampleID), ]
-
-  if (class(unifrac.data) != "dist") {
-    warning("unifrac.data not dist; coerced to dist")
-    unifrac.data <- dist(unifrac.data)
-  }
-
-  pn <- adonis(
-    formula(sprintf("unifrac.data ~ %s", terms)),
-    data = .s)
-
-  broom::tidy(pn$aov.tab)
-}
-
-#' Standardized PCoA plot.
-#' @param pcoa.data dataframe generated by MakePCOAData
-#' @param fill column to set as fill aesthetic
-#' @param linetype column to set as linetype aesthetic
-#' @param fill.palette color palette to use as fill
-#' @param color.palette color palette to use for outlines and line segments
-PlotPCOA <- function(pcoa.data, fill = "StudyGroup", linetype="SampleType",
-                     fill.palette, color.palette) {
-  ggplot(
-    pcoa.data,
-    aes_string(x="Axis.1", y="Axis.2", fill=fill, color=fill)) +
-    geom_segment(aes_string(xend="med.x", yend="med.y", linetype=linetype)) +
-    geom_point(shape=21, size=2) +
-    stat_ellipse(alpha=0.3) +
-    scale_fill_manual(values=pcoa.fills) +
-    scale_color_manual(values=pcoa.colors) +
-    theme_classic(base_size = 16) +
-    theme(
-      axis.ticks=element_blank(),
-      axis.text=element_blank(),
-      aspect.ratio=1,
-      # legend.position=c(0,1),
-      # legend.justification=c(0,1),
-      legend.title=element_blank(),
-      legend.background=element_blank(),
-      plot.subtitle=element_text(size=10))
 }
 
 

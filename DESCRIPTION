@@ -26,6 +26,7 @@ Depends:
   ggplot2,
   eclpalettes,
   ggbeeswarm,
-  Cairo
+  Cairo,
+  GUniFrac
 Imports:
   dplyr

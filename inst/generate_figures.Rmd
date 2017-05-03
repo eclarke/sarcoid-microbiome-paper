@@ -6,7 +6,7 @@ output: html_document
 params: 
   data_fp: "/home/ecl/data/000_Sarcoidosis/099_Manuscript/data_files"
   figure_fp: "/home/ecl/data/000_Sarcoidosis/099_Manuscript/Figures"
-  device: ""
+  table_fp: "/home/ecl/data/000_Sarcoidosis/099_Manuscript/Tables"
 ---
 
 ```{r setup, error=FALSE}
@@ -377,9 +377,261 @@ invisible(within(de.wgs, {
 }))
 ```
 
-## Figure S1: Set A Community Differences
+## Figure S2: Set A Community Differences
+
+```{r a-16s-ln-pcoa}
+invisible(within(a.16s, {
+  set.seed(1)
+  .agg <-  agg %>% 
+    filter(
+      StudyGroup != "extr_ctrl", 
+      SampleType %in% c("lymph_node")) %>%
+    mutate(SampleType = fct_recode(
+      SampleType, c("lymph node"="lymph_node"))) %>%
+    mutate(readcount=total)
+  PCoAChunk(
+    .agg, s, tree, rarefy.depth=1000, 
+    testing.terms=c("readcount","StudyGroup"), 
+    sampleset=sampleset, dataset=datatype,
+    subset="tissue", fig.num="S2A", fig.dir=opts$figure_fp)
+}))
+```
+
+```{r a-its-ln-pcoa}
+invisible(within(a.its, {
+  set.seed(1)
+  
+  .agg <-  agg %>% 
+    filter(
+      count > 0,
+      StudyGroup != "extr_ctrl", 
+      SampleType %in% c("lymph_node")) %>%
+    mutate(SampleType = fct_recode(SampleType, c("lymph node"="lymph_node"))) %>%
+    mutate(readcount=total)
+
+  PCoAChunk(
+    .agg, s, tree, rarefy.depth=900, 
+    testing.terms=c("readcount", "StudyGroup"), 
+    sampleset=sampleset, dataset=datatype, subset="tissue", fig.num="S2B", fig.dir=opts$figure_fp)
+}))
+```
+
+```{r a-its-paraffin-pcoa}
+invisible(within(a.its, {
+  set.seed(1)
+  
+  .agg <-  agg %>% 
+    filter(
+      count > 0,
+      StudyGroup != "extr_ctrl", 
+      SampleType %in% c("paraffin")) %>%
+    mutate(readcount=total)
+
+  PCoAChunk(
+    .agg, s, tree, rarefy.depth=900, 
+    testing.terms=c("readcount", "StudyGroup"), 
+    sampleset="A", dataset="ITS", subset="paraffin", fig.num="S2C", fig.dir=opts$figure_fp)
+}))
+```
+
+```{r a-16s-paraffin-pcoa}
+invisible(within(a.16s, {
+  set.seed(1)
+  .agg <-  agg %>% 
+    filter(
+      StudyGroup != "extr_ctrl", 
+      SampleType %in% c("paraffin")) %>%
+    mutate(SampleType = fct_recode(SampleType, c("lymph node"="lymph_node"))) %>%
+    mutate(readcount=total)
+  PCoAChunk(
+    .agg, s, tree, rarefy.depth=1000, 
+    testing.terms=c("readcount", "StudyGroup"),
+    sampleset=sampleset, dataset=datatype, subset="paraffin", fig.num="S2D", fig.dir=opts$figure_fp)
+}))
+```
+
+## Figure S3: Set B Community Differences
+
+```{r b-16s-pcoa}
+invisible(within(b.16s, {
+# 
+  .agg <-  agg %>% 
+    filter(
+      StudyGroup != "extr_ctrl", 
+      SampleType %in% c("lymph_node", "paraffin"),
+      StudyGroup %in% c("sarcoidosis", "healthy")) %>%
+    mutate(
+      SampleType = fct_recode(SampleType, c("lymph node"="lymph_node"))) %>%
+    mutate(readcount=total)
+
+  PCoAChunk(
+    .agg, s, tree, rarefy.depth=900, 
+    testing.terms=c("StudyGroup"), 
+    sampleset=sampleset, dataset=datatype, subset="tissue", fig.num="S3A", fig.dir=opts$figure_fp)
+}))
+```
+
+```{r b-its-pcoa}
+invisible(within(b.its, {
+# 
+  .agg <-  agg %>% 
+    filter(
+      StudyGroup != "extr_ctrl", 
+      SampleType %in% c("lymph_node", "paraffin"),
+      StudyGroup %in% c("sarcoidosis", "healthy")) %>%
+    mutate(
+      SampleType = fct_recode(SampleType, c("lymph node"="lymph_node"))) %>%
+    mutate(readcount=total)
+
+  PCoAChunk(
+    .agg, s, tree, rarefy.depth=900, 
+    testing.terms=c("StudyGroup"), 
+    sampleset=sampleset, dataset=datatype, subset="tissue", fig.num="S3B", fig.dir=opts$figure_fp)
+}))
+```
+
+
+## Figure S4: Set C Community Differences
+
+```{r c-16s-bal-pcoa}
+invisible(within(c.16s, {
+  .agg <- agg %>%
+    filter(
+      StudyGroup != "extr_ctrl",
+      SampleType %in% c("BAL")) %>%
+    mutate(readcount=total)
+  PCoAChunk(
+    .agg, s, tree, rarefy.depth=1000, testing.terms=c("StudyGroup"), 
+    sampleset=sampleset, dataset=datatype, subset="BAL", fig.num="S4A",
+    fig.dir=opts$figure_fp)
+}))
+```
+
+```{r c-16s-pw-pcoa}
+invisible(within(c.16s, {
+  .agg <- agg %>%
+    filter(
+      StudyGroup != "extr_ctrl",
+      SampleType %in% c("prewash")) %>%
+    mutate(readcount=total)
+  PCoAChunk(
+    .agg, s, tree, rarefy.depth=1000, testing.terms=c("StudyGroup"), 
+    sampleset=sampleset, dataset=datatype, subset="prewash", fig.num="S4B",
+    fig.dir=opts$figure_fp)
+}))
+```
+
+## Figure S5: Viral populations in prewash
+
+```{r c-vir-prewash}
+invisible(within(c.vir, {
+  tech.contam <- c(
+    "Enterobacteria phage M13", "Enterobacteria phage T7", 
+    "Enterobacteria phage phiX174 sensu lato","Bacillus phage phi29", 
+    "Bacillus virus phi29",
+    "Pseudomonas phage phi6", "Shamonda virus", "Human herpesvirus 7", 
+    "Human herpesvirus 6", "Cyprinid herpesvirus 3")
+  p <- agg %>% 
+    filter(SampleType == "prewash", LibraryType == "Genomiphi") %>%
+    filter(!Species %in% tech.contam) %>%
+    MakeHeatmapData(s, "Species") %>%
+    PlotHeatmap(use.reads = FALSE) %>%
+    eclectic::make_square() +
+    theme(
+      strip.text.x=element_text(angle=0),
+      # strip.background=element_blank(),
+      axis.text.x=element_blank(),
+      axis.title=element_blank(),
+      axis.ticks.x=element_blank()
+        
+    )
+  plot(p)
+
+  ggsave(
+    file.path(opts$figure_fp, "FigS5_SetC_virome_prewash.pdf"), p,
+    width=7, height=9)
+}))
+```
+
+## Table S1: Sample Metadata
 
 ```{r}
+StandardizeMetadata <- function(ds) {
 
+  stopifnot(inherits(ds, "SarcoidDataset"))
+  print(sprintf("%s/%s", ds$sampleset, ds$datatype))
+  s <- ds$s
+  new.s <- data.frame(library_ID=s$SampleID)
+  
+  # title: short description
+  describe <- function(study.group, sampleset.type, sample.type) {
+    description <- ""
+    if (!study.group %in% c("sarcoidosis", "healthy"))
+      description <- "experimental control"
+    else 
+      description <- sprintf(
+        "%s %s (%s)", study.group, sampleset.type, sub("_", " ", sample.type))
+  }
+  sampleset.type <- list(
+    A="FFPE tissue", B="FFPE tissue", C="BAL", DE="Kveim/spleen")[[ds$sampleset]]
+  new.s$title <- paste(
+    ds$datatype, "sequencing of", 
+    mapply(describe, s$StudyGroup, sampleset.type, s$SampleType))
+  
+  # library_strategy
+  new.s$library_strategy <- list(
+    "16S" = "AMPLICON",
+    "ITS" = "AMPLICON",
+    "virome" = "OTHER",
+    "WGS" = "WGS")[[ds$datatype]]
+  
+  # library_source
+  new.s$library_source <- "METAGENOMIC"
+  if (ds$datatype == "virome")
+    new.s$library_source <- ifelse(
+      s$LibraryType == "cDNA", "VIRAL RNA", "METAGENOMIC")
+  
+  # library_selection
+  new.s$library_selection <- list(
+    "16S" = "PCR",
+    "ITS" = "PCR",
+    "WGS" = "RANDOM")[[ds$datatype]]
+  if (ds$datatype == "virome")
+    new.s$library_selection <- ifelse(
+      s$LibraryType == "Genomiphi", "MDA", "RT-PCR"
+  )
+  
+  # library_layout
+  new.s$library_layout <- "Paired end"
+  
+  # platform
+  new.s$platform <- "ILLUMINA"
+  
+  # instrument_model
+  new.s$instrument_model <- list(
+    "16S" = "Illumina MiSeq",
+    "ITS" = "Illumina MiSeq",
+    "virome" = "Illumina HiSeq 2500",
+    "WGS" = "Illumina HiSeq 2500")[[ds$datatype]]
+  
+  new.s$design_description <- list(
+    "16S" = "PCR amplification of bacterial 16S rRNA, Nextera chemistry",
+    "ITS" = "PCR amplification of bacterial 16S rRNA, Nextera chemistry",
+    "WGS" = "Random fragmentation of genomic DNA, Nextera chemistry")[[ds$datatype]]
+  if (ds$datatype == "virome")
+    new.s$design_description <- ifelse(
+      s$LibraryType == "Genomiphi", 
+      "Viral purification, followed by Genomiphi amplification of gDNA and Nextera chemistry", 
+      "Viral purification, followed by reverse transcription of viral RNA to cDNA and Nextera chemistry"
+    )
+  new.s$filetype <- "fastq"
+  new.s$SampleSet <- ds$sampleset
+  new.s$SubjectID <- s$SubjectID
+  
+  new.s
+}
+
+combined <- do.call(rbind, lapply(list(a.16s, a.its, b.16s, b.its, c.16s, c.its, c.vir, de.16s, de.its, de.wgs), StandardizeMetadata))
+write.table(combined, file=file.path())
 ```
 

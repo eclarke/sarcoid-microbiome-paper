@@ -513,6 +513,10 @@ LoadData <- memoise::memoise(load_data)
     SampleType, Sarcoidosis="Spleen", Sarcoidosis="Kveim", Control="Blank", Control="Saline"
   ))
 
+  s$SubjectID <- forcats::fct_recode(
+    s$SampleType, D01="Kveim", E01="Spleen", D02="Blank", E02="Saline"
+  )
+
   # Load phylogenetic tree
   tree <- ape::read.tree(file.path(
     root, "tree.tre"))
@@ -580,8 +584,16 @@ LoadData <- memoise::memoise(load_data)
       agg,
       StudyGroup = forcats::fct_recode(StudyGroup, Sarcoidosis="sarcoidosis", Control="extr_ctrl")
     )
+
+    agg$SubjectID <- forcats::fct_recode(
+      agg$SampleType, D01="kveim", E01="spleen", D02="extr_blank", E02="saline"
+    )
+
     # browser()
     s <- s %>% filter(SampleID %in% agg$SampleID)
+    s$SubjectID <- forcats::fct_recode(
+      s$SampleType, D01="kveim", E01="spleen", D02="extr_blank", E02="saline"
+    )
     agg$SampleID <- do.call(function(...) forcats::fct_recode(factor(agg$SampleID), ...), rename.samples)
     s$SampleID <- do.call(function(...) forcats::fct_recode(factor(s$SampleID), ...), rename.samples)
     md <- md %>% filter(otu %in% agg$otu)
@@ -630,6 +642,10 @@ LoadData <- memoise::memoise(load_data)
   s <- s %>% mutate(StudyGroup = forcats::fct_recode(
     SampleType, Sarcoidosis="Spleen", Sarcoidosis="Kveim", Control="Blank", Control="Saline"
   ))
+  s$SubjectID <- forcats::fct_recode(
+    s$SampleType, D01="Kveim", E01="Spleen", D02="Blank", E02="Saline"
+  )
+
   colnames(cts) <- s$SampleID
 
   # Agglomerate sample data, counts, and taxonomy into melted df

@@ -47,9 +47,24 @@ initialize_defaults <- function() {
   opts$ln.labels <-  c("lymph_node"="\u25CF", "paraffin"="\u25CB", "water"="\u2205")
   opts$bal.labels <-  c("BAL"="\u25CF", "prewash"="\u25CB", "water"="\u2205")
 
+  ## PCoA plot options
+
   # Consistent color/fill pairing for PCoA plots
   opts$pcoa.colors <- c(healthy="#a6611a", sarcoidosis="#018571")
   opts$pcoa.fills <- c(healthy="#dfc27d", sarcoidosis="#80cdc1")
+  opts$pcoa.height <- 3.3
+  opts$pcoa.width <- 3
+
+  opts$pcoa.theme <- theme_classic(base_size = 10) +
+    theme(
+      axis.ticks=element_blank(),
+      axis.text=element_blank(),
+      aspect.ratio=10,
+      legend.title=element_blank(),
+      legend.background=element_blank(),
+      legend.position="bottom",
+      plot.title=element_blank(),
+      plot.subtitle=element_blank())
 
   return(opts)
 }
