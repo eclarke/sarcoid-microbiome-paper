@@ -19,7 +19,7 @@ library(ggplot2)
 library(dplyr)
 opts$data_fp <- params$data_fp
 opts$figure_fp <- params$figure_fp
-
+opts$table_fp <- params$table_fp
 theme_set(
   theme_classic(base_size = 12) +
     theme(
@@ -556,82 +556,14 @@ invisible(within(c.vir, {
 ## Table S1: Sample Metadata
 
 ```{r}
-StandardizeMetadata <- function(ds) {
-
-  stopifnot(inherits(ds, "SarcoidDataset"))
-  print(sprintf("%s/%s", ds$sampleset, ds$datatype))
-  s <- ds$s
-  new.s <- data.frame(library_ID=s$SampleID)
-  
-  # title: short description
-  describe <- function(study.group, sampleset.type, sample.type) {
-    description <- ""
-    if (!study.group %in% c("sarcoidosis", "healthy"))
-      description <- "experimental control"
-    else 
-      description <- sprintf(
-        "%s %s (%s)", study.group, sampleset.type, sub("_", " ", sample.type))
-  }
-  sampleset.type <- list(
-    A="FFPE tissue", B="FFPE tissue", C="BAL", DE="Kveim/spleen")[[ds$sampleset]]
-  new.s$title <- paste(
-    ds$datatype, "sequencing of", 
-    mapply(describe, s$StudyGroup, sampleset.type, s$SampleType))
-  
-  # library_strategy
-  new.s$library_strategy <- list(
-    "16S" = "AMPLICON",
-    "ITS" = "AMPLICON",
-    "virome" = "OTHER",
-    "WGS" = "WGS")[[ds$datatype]]
-  
-  # library_source
-  new.s$library_source <- "METAGENOMIC"
-  if (ds$datatype == "virome")
-    new.s$library_source <- ifelse(
-      s$LibraryType == "cDNA", "VIRAL RNA", "METAGENOMIC")
-  
-  # library_selection
-  new.s$library_selection <- list(
-    "16S" = "PCR",
-    "ITS" = "PCR",
-    "WGS" = "RANDOM")[[ds$datatype]]
-  if (ds$datatype == "virome")
-    new.s$library_selection <- ifelse(
-      s$LibraryType == "Genomiphi", "MDA", "RT-PCR"
-  )
-  
-  # library_layout
-  new.s$library_layout <- "Paired end"
-  
-  # platform
-  new.s$platform <- "ILLUMINA"
-  
-  # instrument_model
-  new.s$instrument_model <- list(
-    "16S" = "Illumina MiSeq",
-    "ITS" = "Illumina MiSeq",
-    "virome" = "Illumina HiSeq 2500",
-    "WGS" = "Illumina HiSeq 2500")[[ds$datatype]]
-  
-  new.s$design_description <- list(
-    "16S" = "PCR amplification of bacterial 16S rRNA, Nextera chemistry",
-    "ITS" = "PCR amplification of bacterial 16S rRNA, Nextera chemistry",
-    "WGS" = "Random fragmentation of genomic DNA, Nextera chemistry")[[ds$datatype]]
-  if (ds$datatype == "virome")
-    new.s$design_description <- ifelse(
-      s$LibraryType == "Genomiphi", 
-      "Viral purification, followed by Genomiphi amplification of gDNA and Nextera chemistry", 
-      "Viral purification, followed by reverse transcription of viral RNA to cDNA and Nextera chemistry"
-    )
-  new.s$filetype <- "fastq"
-  new.s$SampleSet <- ds$sampleset
-  new.s$SubjectID <- s$SubjectID
-  
-  new.s
-}
-
-combined <- do.call(rbind, lapply(list(a.16s, a.its, b.16s, b.its, c.16s, c.its, c.vir, de.16s, de.its, de.wgs), StandardizeMetadata))
-write.table(combined, file=file.path())
+combined <- do.call(rbind, lapply(list(
+  a.16s, a.its, 
+  b.16s, b.its, 
+  c.16s, c.its, c.vir, 
+  de.16s, de.its, de.wgs), 
+  StandardizeMetadata))
+write.table(
+  combined, file=file.path(opts$table_fp, "all_samples.tsv"), sep="\t", 
+  row.names = FALSE, quote = FALSE)
 ```
 
