@@ -155,3 +155,85 @@ SaveBarcharts <- function(
 pick_attr <- function(data, attr) {
   attributes(data)[[attr]]
 }
+
+
+#' Prepares data for making the summary barcharts showing the dominant taxa
+#' by group (rather than by sample).
+#' @param agg agglomerated data frame, filtered as desired
+#' @param s sample metadata
+#' @param top top taxa to select from each group (displayed taxa will be union)
+#' @param min.rank min taxonomic rank to display (will group at this or higher)
+#' @export
+MakeTopBarchartData <- function(agg, s, top=6, min.rank="Species") {
+  medians <- agg %>%
+    SarcoidMicrobiome:::MakeHeatmapData(
+      s, min.samples = 1, min.rank.1 = min.rank) %>%
+    # Take care of indeterminate fungi labels
+    mutate(
+      MinRank1 = forcats::fct_recode(
+        MinRank1,
+        Indeterminate="Fungi",
+        Indeterminate="uncultured fungus (phylum)")) %>%
+    # Change all NAs to 0s (otherwise medians are wrong)
+    mutate(proportion = ifelse(is.na(proportion), 0, proportion)) %>%
+    group_by(SampleType, StudyGroup, MinRank1) %>%
+    # Error bars are determined by median absolute deviation
+    summarize(
+      mad=mad(proportion, na.rm=TRUE),
+      proportion=median(proportion, na.rm=TRUE)) %>%
+    mutate(rank = row_number(desc(proportion))) %>%
+    mutate(Group = paste(StudyGroup, SampleType)) %>%
+    # Error bars should stop at 0
+    mutate(
+      min=ifelse(proportion-mad < 0, 0, proportion-mad),
+      max=ifelse(proportion+mad > 1, 1, proportion+mad)) %>%
+    ungroup %>%
+    mutate(
+      MinRank1 = fct_reorder(MinRank1, proportion, na.rm=TRUE, .desc=TRUE)) %>%
+    mutate(
+      Group = fct_recode(
+        Group,
+        "Healthy lymph node"="healthy lymph_node",
+        "Healthy BAL"="healthy BAL",
+        "Healthy paraffin"="healthy paraffin",
+        "Healthy prewash"="healthy prewash",
+        "Sarcoidosis lymph node"="sarcoidosis lymph_node",
+        "Sarcoidosis BAL"="sarcoidosis BAL",
+        "Sarcoidosis paraffin"="sarcoidosis paraffin",
+        "Sarcoidosis prewash"="sarcoidosis prewash"
+      )) %>%
+    mutate(Group = fct_relevel(
+      Group,
+      "Sarcoidosis lymph node", "Sarcoidosis paraffin",
+      "Sarcoidosis BAL", "Sarcoidosis prewash",
+      "Healthy lymph node", "Healthy paraffin",
+      "Healthy BAL", "Healthy prewash"
+    ))
+
+  # Isolate to only the top X taxa
+  top.taxa <- unique((medians %>% filter(
+    rank <= top, proportion > 0, MinRank1 != "Fungi"))$MinRank1)
+  medians %>% filter(MinRank1 %in% top.taxa)
+}
+
+#' Plots data prepared by \link{MakeTopBarchartData}.
+#' @export
+PlotTopBarcharts <- function(top.data) {
+  ggplot(top.data, aes(x=MinRank1, y=proportion, fill=Group)) +
+    geom_errorbar(aes(ymin=min, ymax=max), position="dodge", width=0.7) +
+    geom_bar(stat="identity", position="dodge", width=0.7, color="black") +
+    scale_y_continuous(expand=c(0,0), labels=scales::percent) +
+    theme_classic(base_size = 14) +
+    theme(
+      axis.text.x = element_text(angle=-35, hjust=0, vjust=1),
+      axis.title.x = element_blank(),
+      legend.position=c(0.9,0.9),
+      legend.justification=c(1,1),
+      legend.spacing = unit(0, "lines"),
+      legend.margin=margin(t=0, b=4, r=4, l=4),
+      legend.box.background=element_rect(color="black"),
+      legend.title=element_blank(),
+      legend.key.size=unit(0.8, "lines"),
+      plot.margin=unit(c(.4,3,.4,.4), "lines")
+    )
+}

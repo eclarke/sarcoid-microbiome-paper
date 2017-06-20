@@ -31,6 +31,30 @@ theme_set(
       strip.text = element_text(face = "bold", hjust=0)
     )
 )
+
+# Green/brown colors
+top.barchart.fills <- c(
+  "Healthy lymph node"="#a6611a",
+  "Healthy BAL"="#a6611a",
+  "Healthy paraffin"="#C0A675",
+  "Healthy prewash"="#C0A675",
+  "Sarcoidosis lymph node"="#018571",
+  "Sarcoidosis BAL"="#018571",
+  "Sarcoidosis paraffin"="#86C3AE",
+  "Sarcoidosis prewash"="#86C3AE"
+)
+
+# Red/blue colors
+top.barchart.fills <- c(
+  "Healthy lymph node"="#1f78b4",
+  "Healthy BAL"="#1f78b4",
+  "Healthy paraffin"="#a6cee3",
+  "Healthy prewash"="#a6cee3",
+  "Sarcoidosis lymph node"="#ff7f00",
+  "Sarcoidosis BAL"="#ff7f00",
+  "Sarcoidosis paraffin"="#fdbf6f",
+  "Sarcoidosis prewash"="#fdbf6f"
+)
 ```
 
 ```{r load-data}
@@ -204,6 +228,149 @@ invisible(within(a.its, {
 }))
 ```
 
+```{r a-rank-abundance, eval=FALSE}
+
+## This generates Whittaker and Preston plots but we decided not to include them.
+
+invisible(within(a.16s, {
+  browser()
+  rank_abund <- agg %>%  
+    mutate(label=SarcoidMicrobiome:::min_rank(., end.rank="Species")) %>%
+    group_by(StudyGroup, SampleType) %>%
+    filter(SampleType %in% c("lymph_node", "paraffin")) %>%
+    mutate(rank = row_number(desc(proportion))) %>%
+    arrange(rank) %>%
+    mutate(relabund = proportion/sum(proportion))
+
+  labelling <- rank_abund %>% filter(rank <= 5)
+    
+  whit <- ggplot(rank_abund, aes(x=rank, y=relabund, color=SampleType)) +
+    geom_point(shape=21) +
+    facet_wrap(~ StudyGroup, scales="free") +
+    scale_y_log10() +
+    annotation_logticks(sides = "l") +
+    ggsci::scale_color_npg(labels=c("Lymph node", "Paraffin")) +
+    labs(x="Rank", y="Relative abundance", title="Whittaker plot of relative species abundance in Set A (16S)")
+  plot(whit)
+  ggsave(file.path(
+    opts$figure_fp, 
+    sprintf("FigX1_Set%s_%s_WhittakerPlot.pdf", sampleset, datatype)),
+    plot=whit, height=4, width=8)
+  
+  
+  pres <- ggplot(rank_abund, aes(x=log2(relabund), fill=SampleType)) + 
+    geom_histogram(binwidth=1, position="dodge", color="black") +
+    facet_wrap(~ StudyGroup) +
+    scale_x_continuous(labels = function(x) sprintf("%.1e", 2^x)) +
+    scale_y_continuous(expand=c(0,0)) +
+    ggsci::scale_fill_npg(name="Sample type", labels=c("Lymph node", "Paraffin")) +
+    labs(x="Relative abundance (log2 scaled)", y="OTUs", title="Preston plot of relative species abundance in Set A (16S)")
+  plot(pres)
+  ggsave(file.path(
+    opts$figure_fp, 
+    sprintf("FigX1_Set%s_%s_PrestonPlot.pdf", sampleset, datatype)),
+    plot=pres, height=4, width=8)
+}))
+
+```
+
+```{r a-16s-heatmaps}
+invisible(within(a.16s, {
+  # browser()
+  heatmap.data <- agg %>%
+    filter(SampleType %in% c("lymph_node", "paraffin")) %>%
+    SarcoidMicrobiome:::MakeHeatmapData(s, min.samples = 1, min.rank.1 = "Genus") %>%
+    mutate(proportion = ifelse(is.na(proportion), 0, proportion)) %>%
+    group_by(SampleType, StudyGroup, MinRank1) %>%
+    summarize(proportion=median(proportion, na.rm=TRUE)) %>%
+    mutate(rank = row_number(desc(proportion))) 
+  top.taxa <- (heatmap.data %>% filter(rank <= 10))$MinRank1
+  heatmap.data <- heatmap.data %>% filter(MinRank1 %in% top.taxa) %>%
+    ungroup %>%
+    mutate(
+      StudyGroup = fct_recode(
+        StudyGroup, "Healthy"="healthy", "Sarcoidosis"="sarcoidosis"),
+      SampleType = fct_recode(
+        SampleType, "Lymph node"="lymph_node", "Paraffin"="paraffin"
+      ))
+  
+  .mat <- reshape2::dcast(
+    heatmap.data, MinRank1 ~ StudyGroup + SampleType, value.var="proportion", fill=0
+  )
+  rownames(.mat) <- .mat$MinRank1
+  .mat$MinRank1 <- NULL
+  minrank_order <- (dist(.mat) %>% hclust(method="centroid"))$order
+  
+  heatmap.data <- heatmap.data %>% 
+    mutate(MinRank1 = factor(MinRank1, levels=rownames(.mat)[minrank_order]))
+    
+  heatmap <- SarcoidMicrobiome:::PlotHeatmap(
+    heatmap.data, use.reads=FALSE, x.axis = "SampleType", threshold = .28) +
+    facet_grid(. ~ StudyGroup, space="free", scales="free") +
+    scale_x_discrete(expand=c(0,0)) +
+    # theme_classic(base_size = 12) +
+    theme(
+      text = element_text(color="black"),
+      axis.text.x = element_text(angle=0, hjust=0.5, vjust=0),
+      axis.title = element_blank(),
+      strip.text.x = element_text(angle=0),
+      strip.background = element_rect(fill=NA, color="grey20")
+    ) +
+    ggsci::scale_fill_material("blue-grey", name="Median %", na.value="white", labels=scales::percent_format())
+    
+  
+  plot(heatmap)
+  
+  ggsave(file.path(
+    opts$figure_fp, 
+    sprintf("FigX2_Set%s_%s_SummaryHeatmap.pdf", sampleset, datatype)),
+    plot=heatmap, height=4, width=5.5)
+}))
+
+```
+
+```{r a-16s-topbarcharts}
+invisible(within(a.16s, {
+  p <- agg %>%
+    ungroup %>%
+    filter(
+      SampleType %in% c("lymph_node", "paraffin"), 
+      StudyGroup %in% c("healthy", "sarcoidosis")) %>%
+    MakeTopBarchartData(s, top=6, min.rank="Species") %>%
+    PlotTopBarcharts() +
+    scale_fill_manual("", values=top.barchart.fills) +
+    labs(
+      y="Median abundance", 
+      title=sprintf("Dominant taxa in Set %s (%s)", sampleset, datatype))
+  
+  ggsave(file.path(
+    opts$figure_fp, 
+    sprintf("FigXa_Set%s_%s_SummaryDynamitePlots.pdf", sampleset, datatype)),
+    plot=p, height=4, width=7)
+}))
+```
+
+```{r a-its-topbarcharts}
+invisible(within(a.its, {
+  p <- agg %>%
+    ungroup %>%
+    filter(
+      SampleType %in% c("lymph_node", "paraffin"), 
+      StudyGroup %in% c("healthy", "sarcoidosis")) %>%
+    MakeTopBarchartData(s, top=6, min.rank="Species") %>%
+    PlotTopBarcharts() +
+    scale_fill_manual("", values=top.barchart.fills) +
+    labs(
+      y="Median abundance", 
+      title=sprintf("Dominant taxa in Set %s (%s)", sampleset, datatype))
+  
+  ggsave(file.path(
+    opts$figure_fp, 
+    sprintf("FigXa_Set%s_%s_SummaryDynamitePlots.pdf", sampleset, datatype)),
+    plot=p, height=4, width=7)
+}))
+```
+
 ## Fig 2: Set B Barcharts
 
 ```{r b-16s-barcharts}
@@ -243,6 +410,50 @@ invisible(within(b.its, {
     SaveBarcharts(
       file.path(opts$figure_fp, sprintf("Fig2B_Set%s_%s_%%s.pdf", sampleset, datatype)),
       height=opts$barchart.height/1.5)
+}))
+```
+
+```{r b-16s-topbarcharts}
+invisible(within(b.16s, {
+  p <- agg %>%
+    ungroup %>%
+    filter(
+      SampleType %in% c("lymph_node", "paraffin"), 
+      StudyGroup %in% c("healthy", "sarcoidosis")) %>%
+    MakeTopBarchartData(s, top=6, min.rank="Species") %>%
+    PlotTopBarcharts() +
+    scale_fill_manual("", values=top.barchart.fills) +
+    scale_y_continuous(limits=c(0,.3), expand=c(0,0), labels=scales::percent) +
+    labs(
+      y="Median abundance", 
+      title=sprintf("Dominant taxa in Set %s (%s)", sampleset, datatype))
+  
+  ggsave(file.path(
+    opts$figure_fp, 
+    sprintf("FigXa_Set%s_%s_SummaryDynamitePlots.pdf", sampleset, datatype)),
+    plot=p, height=4, width=7)
+}))
+```
+
+```{r b-its-topbarcharts}
+invisible(within(b.its, {
+  p <- agg %>%
+    ungroup %>%
+    filter(
+      SampleType %in% c("lymph_node", "paraffin"), 
+      StudyGroup %in% c("healthy", "sarcoidosis")) %>%
+    MakeTopBarchartData(s, top=6, min.rank="Species") %>%
+    PlotTopBarcharts() +
+    scale_fill_manual("", values=top.barchart.fills) +
+    scale_y_continuous(limits=c(0,.25), expand=c(0,0), labels=scales::percent) +
+    labs(
+      y="Median abundance", 
+      title=sprintf("Dominant taxa in Set %s (%s)", sampleset, datatype))
+  
+  ggsave(file.path(
+    opts$figure_fp, 
+    sprintf("FigXa_Set%s_%s_SummaryDynamitePlots.pdf", sampleset, datatype)),
+    plot=p, height=4, width=7)
 }))
 ```
 
@@ -304,6 +515,77 @@ invisible(within(c.vir, {
      SplitBarcharts(groups = c("sarcoidosis", "healthy")) %>%
      SaveBarcharts(
        file.path(opts$figure_fp, sprintf("Fig3C_Set%s_%s_%%s.pdf", sampleset, datatype)))
+}))
+```
+
+```{r c-16s-topbarcharts}
+invisible(within(c.16s, {
+  p <- agg %>%
+    ungroup %>%
+    filter(
+      SampleType %in% c("BAL", "prewash"), 
+      StudyGroup %in% c("healthy", "sarcoidosis")) %>%
+    MakeTopBarchartData(s, top=6, min.rank="Species") %>%
+    PlotTopBarcharts() +
+    scale_fill_manual("", values=top.barchart.fills) +
+    scale_y_continuous(limits=c(0,.25), expand=c(0,0), labels=scales::percent) +
+    labs(
+      y="Median abundance", 
+      title=sprintf("Dominant taxa in Set %s (%s)", sampleset, datatype))
+  
+  ggsave(file.path(
+    opts$figure_fp, 
+    sprintf("FigXa_Set%s_%s_SummaryDynamitePlots.pdf", sampleset, datatype)),
+    plot=p, height=4, width=7)
+}))
+```
+
+```{r c-its-topbarcharts}
+invisible(within(c.its, {
+  p <- agg %>%
+    ungroup %>%
+    filter(
+      SampleType %in% c("BAL", "prewash"), 
+      StudyGroup %in% c("healthy", "sarcoidosis")) %>%
+    MakeTopBarchartData(s, top=6, min.rank="Family") %>%
+    PlotTopBarcharts() +
+    scale_fill_manual("", values=top.barchart.fills) +
+    labs(
+      y="Median abundance", 
+      title=sprintf("Dominant taxa in Set %s (%s)", sampleset, datatype))
+  
+  ggsave(file.path(
+    opts$figure_fp, 
+    sprintf("FigXa_Set%s_%s_SummaryDynamitePlots.pdf", sampleset, datatype)),
+    plot=p, height=4, width=7)
+}))
+```
+
+```{r c-vir-topbarcharts}
+invisible(within(c.vir, {
+  tech.contam <- c(
+    "Enterobacteria phage M13", "Enterobacteria phage T7", 
+    "Enterobacteria phage phiX174 sensu lato","Bacillus phage phi29", 
+    "Pseudomonas phage phi6", "Shamonda virus", "Human herpesvirus 7", 
+    "Human herpesvirus 6", "Cyprinid herpesvirus 3")
+  p <- agg %>%
+    ungroup %>%
+    filter(
+      SampleType %in% c("BAL", "prewash"), 
+      StudyGroup %in% c("healthy", "sarcoidosis"),
+      !Species %in% tech.contam) %>%
+    MakeTopBarchartData(s, top=6, min.rank="Genus") %>%
+    PlotTopBarcharts() +
+    scale_fill_manual("", values=top.barchart.fills) +
+    scale_y_continuous(limits=c(0,1), expand=c(0,0), labels=scales::percent) +
+    labs(
+      y="Median abundance", 
+      title=sprintf("Dominant taxa in Set %s (%s)", sampleset, datatype))
+  
+  ggsave(file.path(
+    opts$figure_fp, 
+    sprintf("FigXa_Set%s_%s_SummaryDynamitePlots.pdf", sampleset, datatype)),
+    plot=p, height=4, width=7)
 }))
 ```
 
