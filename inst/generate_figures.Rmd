@@ -55,6 +55,13 @@ top.barchart.fills <- c(
   "Sarcoidosis paraffin"="#fdbf6f",
   "Sarcoidosis prewash"="#fdbf6f"
 )
+
+# Virus contaminants
+tech.contam <- c(
+  "Enterobacteria phage M13", "Enterobacteria phage T7", 
+  "Enterobacteria phage phiX174 sensu lato","Bacillus phage phi29", 
+  "Pseudomonas phage phi6", "Shamonda virus", "Human herpesvirus 7", 
+  "Human herpesvirus 6", "Cyprinid herpesvirus 3")
 ```
 
 ```{r load-data}
@@ -275,11 +282,12 @@ invisible(within(a.16s, {
 ```
 
 ```{r a-16s-heatmaps}
-invisible(within(a.16s, {
-  # browser()
+invisible(within(c.vir, {
+  browser()
   heatmap.data <- agg %>%
-    filter(SampleType %in% c("lymph_node", "paraffin")) %>%
-    SarcoidMicrobiome:::MakeHeatmapData(s, min.samples = 1, min.rank.1 = "Genus") %>%
+    filter(SampleType %in% c("BAL", "prewash"),
+           !Species %in% tech.contam) %>%
+    SarcoidMicrobiome:::MakeHeatmapData(s, min.samples = 1, min.rank.1 = "Species") %>%
     mutate(proportion = ifelse(is.na(proportion), 0, proportion)) %>%
     group_by(SampleType, StudyGroup, MinRank1) %>%
     summarize(proportion=median(proportion, na.rm=TRUE)) %>%
@@ -321,10 +329,10 @@ invisible(within(a.16s, {
   
   plot(heatmap)
   
-  ggsave(file.path(
-    opts$figure_fp, 
-    sprintf("FigX2_Set%s_%s_SummaryHeatmap.pdf", sampleset, datatype)),
-    plot=heatmap, height=4, width=5.5)
+  # ggsave(file.path(
+  #   opts$figure_fp, 
+  #   sprintf("FigX2_Set%s_%s_SummaryHeatmap.pdf", sampleset, datatype)),
+  #   plot=heatmap, height=4, width=5.5)
 }))
 
 ```
@@ -339,6 +347,7 @@ invisible(within(a.16s, {
     MakeTopBarchartData(s, top=6, min.rank="Species") %>%
     PlotTopBarcharts() +
     scale_fill_manual("", values=top.barchart.fills) +
+    scale_y_continuous(limits=c(0,.25), expand=c(0,0), labels=scales::percent) +
     labs(
       y="Median abundance", 
       title=sprintf("Dominant taxa in Set %s (%s)", sampleset, datatype))
@@ -360,6 +369,7 @@ invisible(within(a.its, {
     MakeTopBarchartData(s, top=6, min.rank="Species") %>%
     PlotTopBarcharts() +
     scale_fill_manual("", values=top.barchart.fills) +
+    scale_y_continuous(limits=c(0,1), expand=c(0,0), labels=scales::percent) +
     labs(
       y="Median abundance", 
       title=sprintf("Dominant taxa in Set %s (%s)", sampleset, datatype))
@@ -423,7 +433,11 @@ invisible(within(b.16s, {
     MakeTopBarchartData(s, top=6, min.rank="Species") %>%
     PlotTopBarcharts() +
     scale_fill_manual("", values=top.barchart.fills) +
-    scale_y_continuous(limits=c(0,.3), expand=c(0,0), labels=scales::percent) +
+    scale_y_continuous(
+      limits=c(0,.3), 
+      breaks=c(0, 0.1, 0.2, 0.3),
+      expand=c(0,0), 
+      labels=scales::percent) +
     labs(
       y="Median abundance", 
       title=sprintf("Dominant taxa in Set %s (%s)", sampleset, datatype))
@@ -571,9 +585,11 @@ invisible(within(c.vir, {
   p <- agg %>%
     ungroup %>%
     filter(
+      LibraryType == "Genomiphi",
       SampleType %in% c("BAL", "prewash"), 
       StudyGroup %in% c("healthy", "sarcoidosis"),
-      !Species %in% tech.contam) %>%
+      !Species %in% tech.contam,
+      Genus != "Phi29virus") %>%
     MakeTopBarchartData(s, top=6, min.rank="Genus") %>%
     PlotTopBarcharts() +
     scale_fill_manual("", values=top.barchart.fills) +
