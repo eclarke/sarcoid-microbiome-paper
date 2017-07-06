@@ -177,19 +177,18 @@ MakeTopBarchartData <- function(agg, s, top=6, min.rank="Species") {
     # Change all NAs to 0s (otherwise medians are wrong)
     mutate(proportion = ifelse(is.na(proportion), 0, proportion)) %>%
     group_by(SampleType, StudyGroup, MinRank1) %>%
-    # Error bars are determined by median absolute deviation
+    # Error bars are determined by the quantiles of the binomial distribution
     summarize(
-      mad=mad(proportion, na.rm=TRUE),
-      proportion=median(proportion, na.rm=TRUE)) %>%
-    mutate(rank = row_number(desc(proportion))) %>%
+      med=median(proportion),
+      max = max(proportion),
+      min = min(proportion),
+      conf.high=sort(proportion)[qbinom(0.975, length(proportion), 0.5)],
+      conf.low=sort(proportion)[qbinom(0.025, length(proportion), 0.5)]) %>%
+    mutate(rank = row_number(desc(med))) %>%
     mutate(Group = paste(StudyGroup, SampleType)) %>%
-    # Error bars should stop at 0
-    mutate(
-      min=ifelse(proportion-mad < 0, 0, proportion-mad),
-      max=ifelse(proportion+mad > 1, 1, proportion+mad)) %>%
     ungroup %>%
     mutate(
-      MinRank1 = fct_reorder(MinRank1, proportion, na.rm=TRUE, .desc=TRUE)) %>%
+      MinRank1 = fct_reorder(MinRank1, med, na.rm=TRUE, .desc=TRUE)) %>%
     mutate(
       Group = fct_recode(
         Group,
@@ -212,18 +211,19 @@ MakeTopBarchartData <- function(agg, s, top=6, min.rank="Species") {
 
   # Isolate to only the top X taxa
   top.taxa <- unique((medians %>% filter(
-    rank <= top, proportion > 0, MinRank1 != "Fungi"))$MinRank1)
+    rank <= top, MinRank1 != "Fungi"))$MinRank1)
   medians %>% filter(MinRank1 %in% top.taxa)
 }
 
 #' Plots data prepared by \link{MakeTopBarchartData}.
 #' @export
-PlotTopBarcharts <- function(top.data) {
-  ggplot(top.data, aes(x=MinRank1, y=proportion, fill=Group)) +
-    geom_errorbar(aes(ymin=min, ymax=max), position="dodge", width=0.7) +
-    geom_bar(stat="identity", position="dodge", width=0.7, color="black") +
-    scale_y_continuous(expand=c(0,0), labels=scales::percent) +
+PlotTopBarcharts <- function(dat) {
+  ggplot(dat, aes(x=MinRank1, y=med, fill=Group, color=Group)) +
+    geom_crossbar(aes(ymin=conf.low, ymax=conf.high), position=position_dodge(0.7), width=0.6) +
+    geom_crossbar(aes(ymin=med, ymax=med), color="white", position=position_dodge(0.7), width=0.4, fatten=1) +
     theme_classic(base_size = 14) +
+    guides(color="none", fill=guide_legend(override.aes = list(color=NA))) +
+    ylab("Median (95% CI) abundance") +
     theme(
       axis.text.x = element_text(angle=-35, hjust=0, vjust=1),
       axis.title.x = element_blank(),

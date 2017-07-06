@@ -33,16 +33,16 @@ theme_set(
 )
 
 # Green/brown colors
-top.barchart.fills <- c(
-  "Healthy lymph node"="#a6611a",
-  "Healthy BAL"="#a6611a",
-  "Healthy paraffin"="#C0A675",
-  "Healthy prewash"="#C0A675",
-  "Sarcoidosis lymph node"="#018571",
-  "Sarcoidosis BAL"="#018571",
-  "Sarcoidosis paraffin"="#86C3AE",
-  "Sarcoidosis prewash"="#86C3AE"
-)
+# top.barchart.fills <- c(
+#   "Healthy lymph node"="#a6611a",
+#   "Healthy BAL"="#a6611a",
+#   "Healthy paraffin"="#C0A675",
+#   "Healthy prewash"="#C0A675",
+#   "Sarcoidosis lymph node"="#018571",
+#   "Sarcoidosis BAL"="#018571",
+#   "Sarcoidosis paraffin"="#86C3AE",
+#   "Sarcoidosis prewash"="#86C3AE"
+# )
 
 # Red/blue colors
 top.barchart.fills <- c(
@@ -347,20 +347,21 @@ invisible(within(a.16s, {
     MakeTopBarchartData(s, top=6, min.rank="Species") %>%
     PlotTopBarcharts() +
     scale_fill_manual("", values=top.barchart.fills) +
-    scale_y_continuous(limits=c(0,.25), expand=c(0,0), labels=scales::percent) +
+    scale_color_manual("", values=top.barchart.fills) +
+    scale_y_continuous(expand=c(0,0), labels=scales::percent) +
     labs(
-      y="Median abundance", 
       title=sprintf("Dominant taxa in Set %s (%s)", sampleset, datatype))
-  
+  plot(p)
   ggsave(file.path(
-    opts$figure_fp, 
-    sprintf("FigXa_Set%s_%s_SummaryDynamitePlots.pdf", sampleset, datatype)),
+    opts$figure_fp,
+    sprintf("FigXb_Set%s_%s_Boxplots.pdf", sampleset, datatype)),
     plot=p, height=4, width=7)
 }))
 ```
 
 ```{r a-its-topbarcharts}
 invisible(within(a.its, {
+  # browser()
   p <- agg %>%
     ungroup %>%
     filter(
@@ -369,14 +370,14 @@ invisible(within(a.its, {
     MakeTopBarchartData(s, top=6, min.rank="Species") %>%
     PlotTopBarcharts() +
     scale_fill_manual("", values=top.barchart.fills) +
-    scale_y_continuous(limits=c(0,1), expand=c(0,0), labels=scales::percent) +
+    scale_color_manual("", values=top.barchart.fills) +
+    scale_y_continuous(expand=c(0,0), labels=scales::percent) +
     labs(
-      y="Median abundance", 
       title=sprintf("Dominant taxa in Set %s (%s)", sampleset, datatype))
-  
+  plot(p)
   ggsave(file.path(
-    opts$figure_fp, 
-    sprintf("FigXa_Set%s_%s_SummaryDynamitePlots.pdf", sampleset, datatype)),
+    opts$figure_fp,
+    sprintf("FigXb_Set%s_%s_Boxplots.pdf", sampleset, datatype)),
     plot=p, height=4, width=7)
 }))
 ```
@@ -425,6 +426,7 @@ invisible(within(b.its, {
 
 ```{r b-16s-topbarcharts}
 invisible(within(b.16s, {
+  # browser()
   p <- agg %>%
     ungroup %>%
     filter(
@@ -433,24 +435,21 @@ invisible(within(b.16s, {
     MakeTopBarchartData(s, top=6, min.rank="Species") %>%
     PlotTopBarcharts() +
     scale_fill_manual("", values=top.barchart.fills) +
-    scale_y_continuous(
-      limits=c(0,.3), 
-      breaks=c(0, 0.1, 0.2, 0.3),
-      expand=c(0,0), 
-      labels=scales::percent) +
+    scale_color_manual("", values=top.barchart.fills) +
+    scale_y_continuous(expand=c(0,0), labels=scales::percent) +
     labs(
-      y="Median abundance", 
       title=sprintf("Dominant taxa in Set %s (%s)", sampleset, datatype))
-  
+  plot(p)
   ggsave(file.path(
-    opts$figure_fp, 
-    sprintf("FigXa_Set%s_%s_SummaryDynamitePlots.pdf", sampleset, datatype)),
+    opts$figure_fp,
+    sprintf("FigXb_Set%s_%s_Boxplots.pdf", sampleset, datatype)),
     plot=p, height=4, width=7)
 }))
 ```
 
 ```{r b-its-topbarcharts}
 invisible(within(b.its, {
+  # browser()
   p <- agg %>%
     ungroup %>%
     filter(
@@ -459,14 +458,15 @@ invisible(within(b.its, {
     MakeTopBarchartData(s, top=6, min.rank="Species") %>%
     PlotTopBarcharts() +
     scale_fill_manual("", values=top.barchart.fills) +
-    scale_y_continuous(limits=c(0,.25), expand=c(0,0), labels=scales::percent) +
+    scale_color_manual("", values=top.barchart.fills) +
+    scale_y_continuous(expand=c(0,0), labels=scales::percent) +
     labs(
       y="Median abundance", 
       title=sprintf("Dominant taxa in Set %s (%s)", sampleset, datatype))
-  
+  plot(p)
   ggsave(file.path(
-    opts$figure_fp, 
-    sprintf("FigXa_Set%s_%s_SummaryDynamitePlots.pdf", sampleset, datatype)),
+    opts$figure_fp,
+    sprintf("FigXb_Set%s_%s_Boxplots.pdf", sampleset, datatype)),
     plot=p, height=4, width=7)
 }))
 ```
@@ -534,6 +534,7 @@ invisible(within(c.vir, {
 
 ```{r c-16s-topbarcharts}
 invisible(within(c.16s, {
+  # browser()
   p <- agg %>%
     ungroup %>%
     filter(
@@ -542,65 +543,70 @@ invisible(within(c.16s, {
     MakeTopBarchartData(s, top=6, min.rank="Species") %>%
     PlotTopBarcharts() +
     scale_fill_manual("", values=top.barchart.fills) +
-    scale_y_continuous(limits=c(0,.25), expand=c(0,0), labels=scales::percent) +
+    scale_color_manual("", values=top.barchart.fills) +
+    scale_y_continuous(expand=c(0,0), labels=scales::percent) +
     labs(
       y="Median abundance", 
       title=sprintf("Dominant taxa in Set %s (%s)", sampleset, datatype))
-  
+  plot(p)
   ggsave(file.path(
-    opts$figure_fp, 
-    sprintf("FigXa_Set%s_%s_SummaryDynamitePlots.pdf", sampleset, datatype)),
+    opts$figure_fp,
+    sprintf("FigXb_Set%s_%s_Boxplots.pdf", sampleset, datatype)),
     plot=p, height=4, width=7)
 }))
 ```
 
 ```{r c-its-topbarcharts}
 invisible(within(c.its, {
+  # browser()
   p <- agg %>%
     ungroup %>%
     filter(
       SampleType %in% c("BAL", "prewash"), 
       StudyGroup %in% c("healthy", "sarcoidosis")) %>%
-    MakeTopBarchartData(s, top=6, min.rank="Family") %>%
+    MakeTopBarchartData(s, top=6, min.rank="Species") %>%
     PlotTopBarcharts() +
     scale_fill_manual("", values=top.barchart.fills) +
+    scale_color_manual("", values=top.barchart.fills) +
+    scale_y_continuous(expand=c(0,0), labels=scales::percent) +
     labs(
-      y="Median abundance", 
       title=sprintf("Dominant taxa in Set %s (%s)", sampleset, datatype))
-  
+  plot(p)
   ggsave(file.path(
-    opts$figure_fp, 
-    sprintf("FigXa_Set%s_%s_SummaryDynamitePlots.pdf", sampleset, datatype)),
+    opts$figure_fp,
+    sprintf("FigXb_Set%s_%s_Boxplots.pdf", sampleset, datatype)),
     plot=p, height=4, width=7)
 }))
 ```
 
 ```{r c-vir-topbarcharts}
 invisible(within(c.vir, {
+  # browser()
   tech.contam <- c(
     "Enterobacteria phage M13", "Enterobacteria phage T7", 
-    "Enterobacteria phage phiX174 sensu lato","Bacillus phage phi29", 
+    "Enterobacteria phage phiX174 sensu lato", "Bacillus phage phi29", 
     "Pseudomonas phage phi6", "Shamonda virus", "Human herpesvirus 7", 
     "Human herpesvirus 6", "Cyprinid herpesvirus 3")
+  # browser()
   p <- agg %>%
     ungroup %>%
     filter(
-      LibraryType == "Genomiphi",
       SampleType %in% c("BAL", "prewash"), 
       StudyGroup %in% c("healthy", "sarcoidosis"),
       !Species %in% tech.contam,
-      Genus != "Phi29virus") %>%
+      Genus != "Phi29virus",
+      LibraryType == "Genomiphi") %>%
     MakeTopBarchartData(s, top=6, min.rank="Genus") %>%
     PlotTopBarcharts() +
     scale_fill_manual("", values=top.barchart.fills) +
-    scale_y_continuous(limits=c(0,1), expand=c(0,0), labels=scales::percent) +
+    scale_color_manual("", values=top.barchart.fills) +
+    scale_y_continuous(expand=c(0,0), labels=scales::percent) +
     labs(
-      y="Median abundance", 
       title=sprintf("Dominant taxa in Set %s (%s)", sampleset, datatype))
-  
+  plot(p)
   ggsave(file.path(
-    opts$figure_fp, 
-    sprintf("FigXa_Set%s_%s_SummaryDynamitePlots.pdf", sampleset, datatype)),
+    opts$figure_fp,
+    sprintf("FigXb_Set%s_%s_Boxplots.pdf", sampleset, datatype)),
     plot=p, height=4, width=7)
 }))
 ```

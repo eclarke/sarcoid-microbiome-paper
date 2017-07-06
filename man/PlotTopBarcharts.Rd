@@ -4,7 +4,7 @@
 \alias{PlotTopBarcharts}
 \title{Plots data prepared by \link{MakeTopBarchartData}.}
 \usage{
-PlotTopBarcharts(top.data)
+PlotTopBarcharts(dat)
 }
 \description{
 Plots data prepared by \link{MakeTopBarchartData}.
