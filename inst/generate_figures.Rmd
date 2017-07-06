@@ -871,3 +871,32 @@ write.table(
   row.names = FALSE, quote = FALSE)
 ```
 
+### SRA data
+
+```{r biosample-tables}
+WriteSRATables <- function(ds) {
+  biosample <- MakeBioSample(ds)
+  sra <- MakeSRAMetadata(ds)
+  write.table(
+    biosample, 
+    file=file.path(
+      opts$table_fp,
+      sprintf("biosample_%s_%s.tsv", ds$sampleset, ds$datatype)), 
+    sep="\t", row.names = FALSE, quote=FALSE)
+  
+  write.table(
+    sra, 
+    file=file.path(
+      opts$table_fp, 
+      sprintf("sra_%s_%s.tsv", ds$sampleset, ds$datatype)),
+    sep="\t", row.names = FALSE, quote=FALSE)
+}
+
+lapply(list(
+  a.16s, a.its, 
+  b.16s, b.its, 
+  c.16s, c.its, c.vir, 
+  de.16s, de.its, de.wgs), 
+  WriteSRATables)
+```
+
