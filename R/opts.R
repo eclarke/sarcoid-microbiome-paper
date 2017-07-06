@@ -52,7 +52,7 @@ initialize_defaults <- function() {
   # Consistent color/fill pairing for PCoA plots
   opts$pcoa.colors <- c(healthy="#a6611a", sarcoidosis="#018571")
   opts$pcoa.fills <- c(healthy="#dfc27d", sarcoidosis="#80cdc1")
-  opts$pcoa.height <- 3.3
+  opts$pcoa.height <- 3.7
   opts$pcoa.width <- 3
 
   opts$pcoa.theme <- theme_classic(base_size = 10) +

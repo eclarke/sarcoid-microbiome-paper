@@ -34,14 +34,16 @@ MakeUnifracData <- function(agg, s, tree, rarefy.depth, alpha=0.5) {
 #' @param s sample metadata dataframe
 #' @param grouping.col column in s defining centroid groups
 MakePCOAData <- function(unifrac.data, s, grouping.col) {
-  .pc <- data.frame(ape::pcoa(unifrac.data)$vectors)[,1:4]
+  pc <- ape::pcoa(unifrac.data)
+  values <- pc$values[1:4,]
+  .pc <- data.frame(pc$vectors)[,1:4]
   .pc$SampleID <- rownames(.pc)
   .pc <- left_join(.pc, s)
   if (!missing(grouping.col)) {
     .pc <- group_by_(.pc, .dots=list(grouping.col)) %>%
       mutate(med.x=mean(Axis.1), med.y=mean(Axis.2))
   }
-  .pc
+  list(pcoord=.pc, values=values)
 }
 
 #' Performs PERMANOVA on the given terms using the unifrac distance matrix.
@@ -73,14 +75,20 @@ TestPermanova <- function(unifrac.data, s, terms) {
 #' @param color.palette color palette to use for outlines and line segments
 PlotPCOA <- function(pcoa.data, fill = "StudyGroup", linetype="SampleType",
                      fill.palette, color.palette) {
+  pcoords <- pcoa.data$pcoord
+  values <- pcoa.data$values
+  axis.1.title <- sprintf("Axis 1 (%1.1f%%)", values[1,]$Relative_eig*100)
+  axis.2.title <- sprintf("Axis 2 (%1.1f%%)", values[2,]$Relative_eig*100)
   ggplot(
-    pcoa.data,
+    pcoords,
     aes_string(x="Axis.1", y="Axis.2", fill=fill, color=fill)) +
     geom_segment(aes_string(xend="med.x", yend="med.y"), size=0.4) +
     geom_point(shape=21, size=2) +
     stat_ellipse(alpha=0.3) +
     scale_fill_manual(values=pcoa.fills) +
     scale_color_manual(values=pcoa.colors) +
+    xlab(axis.1.title) +
+    ylab(axis.2.title) +
     theme_classic(base_size = 10) +
       theme(
         axis.ticks=element_blank(),
@@ -89,15 +97,16 @@ PlotPCOA <- function(pcoa.data, fill = "StudyGroup", linetype="SampleType",
         legend.title=element_blank(),
         legend.background=element_blank(),
         legend.position="bottom",
-        plot.title=element_blank(),
-        plot.subtitle=element_blank())
+        plot.title=element_blank())
+        # plot.subtitle=element_blank())
 }
 
 #' Wrapper for UniFrac calculations, PERMANOVA testing and PCoA plotting.
 #' @export
 PCoAChunk <- function(agg, s, tree, rarefy.depth, testing.terms,
                       sampleset=c("A", "B", "C"), dataset=c("16S","ITS"),
-                      subset, fig.num, fig.dir=opts$figure_fp) {
+                      subset, fig.num, fig.dir=opts$figure_fp,
+                      only.studygroup.terms=TRUE) {
   agg <- agg %>% droplevels() %>% ungroup()
   sample.set <- match.arg(sampleset)
   dataset <- match.arg(dataset)
@@ -105,14 +114,23 @@ PCoAChunk <- function(agg, s, tree, rarefy.depth, testing.terms,
   uf <- MakeUnifracData(agg, s, tree, rarefy.depth, alpha=0.5)
   pc <- MakePCOAData(uf, .s, "StudyGroup")
   pn <- TestPermanova(uf, .s, paste(testing.terms, collapse="*"))
-  subtitle <- paste(c("PERMANOVA", sapply(
-    testing.terms, function(term){with(
-      pn[pn$term == term,],
-      sprintf("%s:\tp=%1.3f\tR2=%1.3f", term, p.value, R2))
-    })), collapse="\n")
+  subtitle <- NULL
+  if (only.studygroup.terms) {
+    if ("StudyGroup" %in% testing.terms) {
+      subtitle <- with(
+        pn[pn$term == "StudyGroup", ],
+        sprintf("PERMANOVA p = %1.3f; R2 = %1.3f", p.value, R2))
+    }
+  } else {
+    subtitle <- paste(c("PERMANOVA", sapply(
+      testing.terms, function(term){with(
+        pn[pn$term == term,],
+        sprintf("%s:\tp=%1.3f\tR2=%1.3f", term, p.value, R2))
+      })), collapse="\n")
+  }
   title <- sprintf("Set %s, %s, %s", sampleset, dataset, subset)
   p <- PlotPCOA(pc, fill.palette = pcoa.fills, color.palette = pcoa.colors) +
-    labs(x="PC1", y="PC2")#, title=title, subtitle=subtitle)
+    labs(subtitle=subtitle)
   SavePCOAPlot(
     p, fig.dir, fig.num, sampleset, dataset, subset)
 }

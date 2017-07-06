@@ -6,7 +6,7 @@
 \usage{
 PCoAChunk(agg, s, tree, rarefy.depth, testing.terms, sampleset = c("A", "B",
   "C"), dataset = c("16S", "ITS"), subset, fig.num,
-  fig.dir = opts$figure_fp)
+  fig.dir = opts$figure_fp, only.studygroup.terms = TRUE)
 }
 \description{
 Wrapper for UniFrac calculations, PERMANOVA testing and PCoA plotting.

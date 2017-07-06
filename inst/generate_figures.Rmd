@@ -728,7 +728,7 @@ invisible(within(a.its, {
   PCoAChunk(
     .agg, s, tree, rarefy.depth=900, 
     testing.terms=c("readcount", "StudyGroup"), 
-    sampleset="A", dataset="ITS", subset="paraffin", fig.num="S2C", fig.dir=opts$figure_fp)
+    sampleset="A", dataset="ITS", subset="paraffin", fig.num="S2D", fig.dir=opts$figure_fp)
 }))
 ```
 
@@ -744,7 +744,7 @@ invisible(within(a.16s, {
   PCoAChunk(
     .agg, s, tree, rarefy.depth=1000, 
     testing.terms=c("readcount", "StudyGroup"),
-    sampleset=sampleset, dataset=datatype, subset="paraffin", fig.num="S2D", fig.dir=opts$figure_fp)
+    sampleset=sampleset, dataset=datatype, subset="paraffin", fig.num="S2C", fig.dir=opts$figure_fp)
 }))
 ```
 
@@ -764,7 +764,7 @@ invisible(within(b.16s, {
 
   PCoAChunk(
     .agg, s, tree, rarefy.depth=900, 
-    testing.terms=c("StudyGroup"), 
+    testing.terms=c("readcount", "StudyGroup"), 
     sampleset=sampleset, dataset=datatype, subset="tissue", fig.num="S3A", fig.dir=opts$figure_fp)
 }))
 ```
@@ -783,7 +783,7 @@ invisible(within(b.its, {
 
   PCoAChunk(
     .agg, s, tree, rarefy.depth=900, 
-    testing.terms=c("StudyGroup"), 
+    testing.terms=c("readcount", "StudyGroup"), 
     sampleset=sampleset, dataset=datatype, subset="tissue", fig.num="S3B", fig.dir=opts$figure_fp)
 }))
 ```
